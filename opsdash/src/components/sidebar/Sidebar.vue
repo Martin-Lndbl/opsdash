@@ -725,7 +725,7 @@ function onCategoryInput(id: string, event: Event) {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, .15);
+  border: 1px solid color-mix(in oklab, var(--fg, #0f172a) 15%, transparent);
 }
 .ge-cat-label {
   font-size: 12px;
@@ -892,12 +892,12 @@ function onCategoryInput(id: string, event: Event) {
   align-items: center;
   padding: 7px 9px;
   border-radius: 11px;
-  background: rgba(0, 0, 0, .02);
+  background: color-mix(in oklab, var(--fg, #0f172a) 3%, transparent);
   border: 1px solid transparent;
   min-width: 0;
   cursor: pointer;
 }
-.step:hover { background: rgba(0, 0, 0, .04); }
+.step:hover { background: color-mix(in oklab, var(--fg, #0f172a) 5%, transparent); }
 
 .step.done {
   background: rgba(22, 163, 74, .05);
@@ -931,7 +931,7 @@ function onCategoryInput(id: string, event: Event) {
 }
 .step.done .sn { background: var(--green, #16a34a); }
 .step.warn .sn { background: var(--amber, #d97706); }
-.step.dim  .sn { background: rgba(0, 0, 0, .08); color: var(--muted, #64748b); }
+.step.dim  .sn { background: color-mix(in oklab, var(--fg, #0f172a) 9%, transparent); color: var(--muted, #64748b); }
 .step.skip .sn { background: rgba(100, 116, 139, .18); color: var(--muted, #64748b); }
 
 /* Step text */
@@ -959,14 +959,14 @@ function onCategoryInput(id: string, event: Event) {
   border-radius: 20px;
   padding: 7px;
   background:
-    linear-gradient(180deg, color-mix(in oklab, var(--card, #fff), var(--brand) 2%), rgba(0, 0, 0, .015));
+    linear-gradient(180deg, color-mix(in oklab, var(--card, #fff), var(--brand) 2%), color-mix(in oklab, var(--card, #fff), var(--fg, #0f172a) 2%));
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   margin-top: auto;
   box-shadow:
-    0 10px 24px rgba(15, 23, 42, .05),
-    inset 0 1px 0 rgba(255, 255, 255, .35);
+    0 10px 24px color-mix(in oklab, var(--fg, #0f172a) 6%, transparent),
+    inset 0 1px 0 color-mix(in oklab, var(--card, #fff) 40%, transparent);
 }
 
 .dk-btn {
@@ -988,5 +988,5 @@ function onCategoryInput(id: string, event: Event) {
 .dk-btn b { font-size: 17px; line-height: 1; }
 .dk-btn.on { color: var(--brand, #2563eb); background: color-mix(in oklab, var(--brand), transparent 93%); }
 .dk-btn:disabled { opacity: .4; cursor: default; }
-.dk-btn:hover:not(:disabled) { background: rgba(0, 0, 0, .04); }
+.dk-btn:hover:not(:disabled) { background: color-mix(in oklab, var(--fg, #0f172a) 5%, transparent); }
 </style>
