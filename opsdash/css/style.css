@@ -1679,44 +1679,11 @@
 #opsdash.opsdash-theme-dark .refresh-indicator::before{
   background:#60a5fa;
 }
-#opsdash.opsdash-theme-light .layout-item{
-  background:var(--opsdash-card);
-  border:1px solid var(--opsdash-border);
-  box-shadow:0 2px 6px rgba(15,23,42,0.06);
-}
-#opsdash.opsdash-theme-light .card{
-  background:var(--opsdash-card);
-  border:1px solid color-mix(in oklab, var(--opsdash-border), #ffffff 75%);
-  box-shadow:
-    0 16px 30px rgba(15,23,42,0.14),
-    0 4px 12px rgba(15,23,42,0.1),
-    inset 0 1px 0 rgba(255,255,255,0.95),
-    inset 0 -1px 0 rgba(15,23,42,0.08);
-}
-#opsdash.opsdash-theme-light .balance-card{
-  border:1px solid color-mix(in oklab, var(--opsdash-border), #ffffff 75%);
-  box-shadow:
-    0 16px 30px rgba(15,23,42,0.14),
-    0 4px 12px rgba(15,23,42,0.1),
-    inset 0 1px 0 rgba(255,255,255,0.95),
-    inset 0 -1px 0 rgba(15,23,42,0.08);
-}
-#opsdash.opsdash-theme-dark .card{
-  border:1px solid color-mix(in oklab, var(--line), #ffffff 20%);
-  box-shadow:
-    0 18px 34px rgba(0,0,0,0.45),
-    0 6px 18px rgba(0,0,0,0.35),
-    inset 0 1px 0 rgba(255,255,255,0.08),
-    inset 0 -1px 0 rgba(0,0,0,0.4);
-}
-#opsdash.opsdash-theme-dark .balance-card{
-  border:1px solid color-mix(in oklab, var(--line), #ffffff 20%);
-  box-shadow:
-    0 18px 34px rgba(0,0,0,0.45),
-    0 6px 18px rgba(0,0,0,0.35),
-    inset 0 1px 0 rgba(255,255,255,0.08),
-    inset 0 -1px 0 rgba(0,0,0,0.4);
-}
+/* Legacy per-theme .card / .balance-card / .layout-item overrides
+   used an undefined --opsdash-card var and stacked hardcoded shadows
+   that fought the global .card treatment. Removed so the theme-aware
+   #opsdash .card at the top of this file is the single source of
+   truth. */
 #opsdash.opsdash-theme-light .app-content__navigation{
   background:var(--opsdash-surface);
   border-color:var(--opsdash-border);

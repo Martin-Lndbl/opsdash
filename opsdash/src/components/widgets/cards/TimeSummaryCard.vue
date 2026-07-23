@@ -798,8 +798,8 @@ function toggleAccordion(offset: number) {
 }
 
 function viewLabel(view: OverviewView) {
-  if (view === 'weekly') return 'Weekly'
-  return 'Daily'
+  if (view === 'weekly') return 'Today'
+  return 'Summary'
 }
 
 function normalizeLaneList(input: TodayLane[]) {
