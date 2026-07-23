@@ -74,6 +74,22 @@ final class OverviewCorePayloadComposer {
         if (isset($context['activePreset']) && $context['activePreset'] !== '') {
             $payload['activePreset'] = $context['activePreset'];
         }
+        if (!empty($context['preferredScope'])) {
+            $payload['preferredScope'] = $context['preferredScope'];
+        }
+        if (!empty($context['globalAppBg'])) {
+            $payload['globalAppBg'] = $context['globalAppBg'];
+        }
+        // Always forward the per-theme slots (including nulls) so the
+        // client's load handler can distinguish "no slot saved" from
+        // "slot cleared". Skipping them entirely made the slots read
+        // as undefined on refresh, so a picked color never came back.
+        if (array_key_exists('globalAppBgLight', $context)) {
+            $payload['globalAppBgLight'] = $context['globalAppBgLight'];
+        }
+        if (array_key_exists('globalAppBgDark', $context)) {
+            $payload['globalAppBgDark'] = $context['globalAppBgDark'];
+        }
         return $payload;
     }
 }

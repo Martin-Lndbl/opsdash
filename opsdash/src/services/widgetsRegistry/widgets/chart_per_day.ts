@@ -10,6 +10,7 @@ import {
   formatLookbackLabel,
   getLookbackColor,
   resolveChartFilter,
+  buildCategoryLabelMap,
   sortLookbackOffsets,
 } from './chartHelpers'
 
@@ -31,6 +32,8 @@ export const chartPerDayEntry: RegistryEntry = {
     compact: false,
     reverseOrder: false,
     forecastMode: 'total',
+      colorStyle: 'fill',
+    colorTint: 0,
   },
   dynamicControls: (options, ctx) => {
     return [
@@ -76,7 +79,7 @@ export const chartPerDayEntry: RegistryEntry = {
         })
         const stacked =
           mode === 'category'
-            ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, ids, categoryColorMap)
+            ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, ids, categoryColorMap, buildCategoryLabelMap(ctx))
             : filterStackedByIds(baseStacked, ids)
         const perDay = buildPerDayFromStacked(stacked)
         if (!perDay) return
@@ -104,7 +107,7 @@ export const chartPerDayEntry: RegistryEntry = {
       })
       const stacked =
         mode === 'category'
-          ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, ids, categoryColorMap)
+          ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, ids, categoryColorMap, buildCategoryLabelMap(ctx))
           : filterStackedByIds(baseStacked, ids)
       chartData = buildPerDayFromStacked(stacked)
     }
@@ -114,6 +117,8 @@ export const chartPerDayEntry: RegistryEntry = {
       cardBg: def.options?.cardBg,
       showHeader: def.options?.showHeader !== false,
       showLabels: def.options?.showLabels === true,
+      colorStyle: def.options?.colorStyle === 'outline' ? 'outline' : 'fill',
+      colorTint: Number.isFinite(Number(def.options?.colorTint)) ? Math.max(0, Math.min(100, Number(def.options?.colorTint))) : 0,
       compact: def.options?.compact === true,
       xLabel: 'Date',
       yLabel: 'Hours (h)',

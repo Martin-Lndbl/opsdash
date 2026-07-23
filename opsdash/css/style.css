@@ -1,10 +1,10 @@
 #opsdash{
   --fg:#0f172a;
   --muted:#475569;
-  --bg:#ffffff;
-  --card:#ffffff;
+  --bg:#efefef;
+  --card:#efefef;
   --line:#e5e7eb;
-  --brand:#2563eb;
+  --brand: var(--color-primary, var(--color-primary-element, var(--primary-color, #2563eb)));
   --soft:#f7f7f8;
   --pos:#16a34a;
   --neg:#ef4444;
@@ -20,10 +20,10 @@
   #opsdash{
     --fg:#e5e7eb;
     --muted:#94a3b8;
-    --bg:#0b1220;
-    --card:#0f172a;
+    --bg:#111111;
+    --card:#111111;
     --line:#1f2937;
-    --brand:#60a5fa;
+    --brand: color-mix(in oklab, var(--color-primary-element-light, var(--color-primary, var(--color-primary-element, var(--primary-color, #60a5fa)))), white 20%);
     --soft:#0b2942;
     --pos:#22c55e;
     --neg:#f87171;
@@ -32,10 +32,10 @@
 #opsdash.opsdash-theme-light{
   --fg:#0f172a;
   --muted:#475569;
-  --bg:#ffffff;
-  --card:#ffffff;
+  --bg:#efefef;
+  --card:#efefef;
   --line:#e5e7eb;
-  --brand:#2563eb;
+  --brand: var(--color-primary, var(--color-primary-element, var(--primary-color, #2563eb)));
   --soft:#f7f7f8;
   --pos:#16a34a;
   --neg:#ef4444;
@@ -51,10 +51,12 @@
 #opsdash.opsdash-theme-dark{
   --fg:#e5e7eb;
   --muted:#94a3b8;
-  --bg:#0b1220;
-  --card:#0f172a;
+  --bg:#111111;
+  --card:#111111;
   --line:#1f2937;
-  --brand:#60a5fa;
+  /* Guarantee brand stays light-enough on dark surfaces even when NC's
+     --color-primary is a dark hue (typical for light-theme users). */
+  --brand: color-mix(in oklab, var(--color-primary-element-light, var(--color-primary, var(--color-primary-element, var(--primary-color, #60a5fa)))), white 20%);
   --soft:#0b2942;
   --pos:#22c55e;
   --neg:#f87171;
@@ -73,7 +75,7 @@
   overflow-x:clip;
 }
 #opsdash.opsdash-theme-light{
-  background:#ffffff;
+  background:#efefef;
 }
 #content.app-opsdash{
   max-width:none;
@@ -110,8 +112,11 @@
   width:var(--opsdash-sidebar-width);
   max-width:var(--opsdash-sidebar-width);
   height:100%;
-  background:transparent;
-  border:none;
+  background-color:color-mix(in oklab, var(--card), var(--fg) 3%);
+  background-image:linear-gradient(180deg,
+    color-mix(in oklab, var(--card), var(--fg) 2%) 0%,
+    color-mix(in oklab, var(--card), var(--fg) 4%) 100%);
+  border:1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 80%);
   border-radius:calc(var(--opsdash-radius) - 2px);
   padding:0 !important;
   overflow-x:hidden !important;
@@ -396,25 +401,95 @@
   font-weight:600;
   font-size:13px;
 }
-#opsdash .card{
-  background:var(--card);
-  border:1px solid color-mix(in oklab, var(--line), #ffffff 45%);
+/* Lean shared polish — the outer surface is defined by drop shadow,
+   a 2px left brand accent and a tiny corner tint. No border on the
+   outer card so inner containers (heatmap tiles, deck rows, hero
+   panels, no-data placeholders) don't create a double-frame effect. */
+#opsdash .card,
+#opsdash .balance-card{
+  position:relative;
+  background-color:var(--card);
+  background-image:
+    linear-gradient(180deg,
+      color-mix(in oklab, var(--card), #ffffff 2%) 0%,
+      var(--card) 32%),
+    radial-gradient(100% 70% at 0% 0%, color-mix(in oklab, var(--brand, #2563eb) 6%, transparent), transparent 24%);
+  border:1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 84%);
   border-radius:calc(var(--opsdash-radius) * var(--widget-space, 1));
   padding:var(--widget-pad, 16px);
-  box-shadow:
-    0 16px 32px rgba(0,0,0,0.22),
-    0 6px 16px rgba(0,0,0,0.18),
-    inset 0 1px 0 rgba(255,255,255,0.18),
-    inset 0 -1px 0 rgba(0,0,0,0.22);
+  box-shadow:inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 40%, transparent);
   font-size:var(--widget-font, 14px);
 }
-#opsdash .balance-card{
-  border:1px solid color-mix(in oklab, var(--line), #ffffff 45%);
-  box-shadow:
-    0 16px 32px rgba(0,0,0,0.22),
-    0 6px 16px rgba(0,0,0,0.18),
-    inset 0 1px 0 rgba(255,255,255,0.18),
-    inset 0 -1px 0 rgba(0,0,0,0.22);
+/* When the user has picked a custom app background, drop the
+   surface gradients + top highlight from widget cards so the
+   chosen color paints uniformly instead of reading as a bluish
+   default fill. Keep the border + inset accent for structure. */
+#opsdash.has-app-bg .card,
+#opsdash.has-app-bg .balance-card{
+  background-image:none;
+  box-shadow:inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 40%, transparent);
+}
+/* Sidebar container: drop the surface gradient overlay when the
+   user has picked a custom bg, but keep the subtle --fg-tinted
+   background so the sidebar still reads as a distinct panel next
+   to the widget grid. */
+#opsdash.has-app-bg .app-content__navigation{
+  background-image:none;
+}
+
+/* Unified header treatment — subtle, no shouting */
+#opsdash .card > .header,
+#opsdash .card > .time-summary-firstline,
+#opsdash .card > .mix-header,
+#opsdash .card > .targets-header,
+#opsdash .card > .chart-widget__header,
+#opsdash .card > .balance-card__header,
+#opsdash .card > .activity-card__header,
+#opsdash .card > .calendar-stats__header,
+#opsdash .card > .dayoff-card__header,
+#opsdash .balance-card > .header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:calc(10px * var(--widget-space, 1));
+  margin-bottom:calc(10px * var(--widget-space, 1));
+  padding-bottom:calc(6px * var(--widget-space, 1));
+  border-bottom:1px solid color-mix(in oklab, var(--brand, #2563eb) 14%, transparent);
+  color:var(--fg);
+  font-weight:700;
+  font-size:calc(13px * var(--widget-scale, 1));
+}
+
+/* Widget titles: quietly emphasized */
+#opsdash .card .chart-widget__title,
+#opsdash .card .calendar-stats__title,
+#opsdash .card .mix-title,
+#opsdash .card .targets-header__title,
+#opsdash .balance-card .title{
+  color:var(--fg);
+  font-weight:750;
+  letter-spacing:-.01em;
+  font-size:calc(14px * var(--widget-scale, 1));
+}
+
+/* Subtitles */
+#opsdash .card .chart-widget__subtitle,
+#opsdash .card .calendar-stats__subtitle,
+#opsdash .card .mix-subtitle,
+#opsdash .card .chart-widget__meta{
+  color:var(--muted);
+  font-weight:500;
+  font-size:calc(11px * var(--widget-scale, 1));
+  letter-spacing:0;
+}
+
+/* Chart legend items — small subtle pill */
+#opsdash .card .chart-widget__legend > li,
+#opsdash .card ul.chart-widget__legend > li{
+  padding:calc(2px * var(--widget-space, 1)) calc(7px * var(--widget-space, 1));
+  border-radius:999px;
+  background:color-mix(in oklab, var(--fg) 4%, transparent);
+  border:1px solid color-mix(in oklab, var(--line, #e5e7eb), transparent 55%);
 }
 #opsdash .card.full{
   width:100%;
@@ -425,11 +500,6 @@
   box-shadow:none;
   background:transparent;
   padding:0;
-}
-#opsdash .card.full .card .chart{
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:12px;
 }
 #opsdash .value{
   font-size:30px;
@@ -520,9 +590,14 @@
   display:block;
   width:100%;
   height:360px;
-  border:1px solid var(--line);
-  border-radius:12px;
-  background:var(--card);
+}
+/* Inside a flex-column widget the canvas should fill the space that the
+   header + legend leave, so the chart stays centred vertically instead of
+   sitting above a 360px fixed slab. */
+#opsdash .chart-widget canvas.chart{
+  flex:1 1 auto;
+  height:auto;
+  min-height:220px;
 }
 #opsdash .hint{
   font-size:12px;
@@ -1453,108 +1528,80 @@
 }
 #opsdash.opsdash-theme-dark .ghost-btn{
   color:var(--opsdash-text);
-  background:#0f172a;
+  background:var(--card);
   border-color:var(--opsdash-border);
 }
 #opsdash.opsdash-theme-dark .ghost-btn:hover{
-  background:#13203a;
+  background:color-mix(in oklab, var(--card), var(--brand) 10%);
   border-color:color-mix(in oklab, var(--opsdash-accent), transparent 50%);
 }
-#opsdash.opsdash-theme-dark{
-  --opsdash-surface: #0b1220;
-  --opsdash-card: #0f172a;
-  --opsdash-border: #1e2a44;
-  --opsdash-accent: #3b82f6;
-  --opsdash-accent-soft: #1d4ed8;
-  --opsdash-text: #e2e8f0;
-  --opsdash-muted: #94a3b8;
+/* Legacy alias tokens. Route them through the main theme vars so the
+   toolbar, tabs, ghost-buttons, refresh indicator etc. inherit the
+   theme's real --card / --fg / --line / --brand — including the
+   #111111 dark default and any custom app-bg the user picked. */
+#opsdash{
+  --opsdash-surface: var(--bg);
+  --opsdash-card: var(--card);
+  --opsdash-border: var(--line);
+  --opsdash-accent: var(--brand);
+  --opsdash-accent-soft: color-mix(in oklab, var(--brand) 20%, var(--card));
+  --opsdash-text: var(--fg);
+  --opsdash-muted: var(--muted);
 }
 #opsdash.opsdash-theme-dark .cards-toolbar__tabs{
   border-bottom:1px solid var(--opsdash-border);
 }
 #opsdash.opsdash-theme-dark .cards-toolbar{
-  background:linear-gradient(180deg, rgba(15,23,42,0.96) 0%, rgba(10,18,33,0.96) 100%);
+  background:linear-gradient(180deg,
+    color-mix(in oklab, var(--card), var(--fg) 6%) 0%,
+    var(--card) 100%);
 }
-#opsdash.opsdash-theme-dark .tab-btn{
-  background:#0d1526;
+#opsdash.opsdash-theme-dark .tab-btn,
+#opsdash.opsdash-theme-dark .tab-menu-btn,
+#opsdash.opsdash-theme-dark .tab-btn--add,
+#opsdash.opsdash-theme-dark .cards-toolbar select,
+#opsdash.opsdash-theme-dark .cards-toolbar__actions,
+#opsdash.opsdash-theme-dark .tab-context-menu{
+  background:color-mix(in oklab, var(--card), var(--fg) 4%);
   border-color:var(--opsdash-border);
   color:var(--opsdash-muted);
-  box-shadow:none;
 }
-#opsdash.opsdash-theme-dark .tab-menu-btn{
-  background:#0d1526;
-  border-color:var(--opsdash-border);
-  color:var(--opsdash-muted);
-}
-#opsdash.opsdash-theme-dark .tab-btn.active{
-  background:#13203a;
-  border-color:color-mix(in oklab, var(--opsdash-accent), transparent 20%);
-  color:var(--opsdash-text);
-}
+#opsdash.opsdash-theme-dark .tab-btn{ box-shadow:none; }
+#opsdash.opsdash-theme-dark .cards-toolbar select{ color:var(--opsdash-text); }
+#opsdash.opsdash-theme-dark .tab-btn.active,
 #opsdash.opsdash-theme-dark .tab-menu-btn.active{
-  background:#13203a;
+  background:color-mix(in oklab, var(--card), var(--brand) 12%);
   border-color:color-mix(in oklab, var(--opsdash-accent), transparent 20%);
   color:var(--opsdash-text);
 }
-#opsdash.opsdash-theme-dark .tab-btn.active::after{
-  background:#60a5fa;
-}
-#opsdash.opsdash-theme-dark .tab-btn--add{
-  background:#0f1a30;
-  border-color:var(--opsdash-border);
-  color:var(--opsdash-muted);
-}
-#opsdash.opsdash-theme-dark .cards-toolbar select{
-  background:#0f1a30;
-  color:var(--opsdash-text);
-  border-color:var(--opsdash-border);
-}
-#opsdash.opsdash-theme-dark .cards-toolbar__actions{
-  background:#0f1a30;
-  border-color:var(--opsdash-border);
-}
+#opsdash.opsdash-theme-dark .tab-btn.active::after{ background:var(--opsdash-accent); }
 #opsdash.opsdash-theme-dark .cards-toolbar select:focus{
   outline:2px solid color-mix(in oklab, var(--opsdash-accent), transparent 40%);
   outline-offset:1px;
 }
-#opsdash.opsdash-theme-dark .tab-context-menu{
-  background:#0f1a30;
-  border-color:var(--opsdash-border);
-}
 #opsdash.opsdash-theme-dark .tab-context-menu button:hover{
-  background:#162447;
-}
-#opsdash.opsdash-theme-light{
-  --opsdash-surface: #ffffff;
-  --opsdash-card: #ffffff;
-  --opsdash-border: #e5e7eb;
-  --opsdash-accent: #2563eb;
-  --opsdash-accent-soft: #f1f5f9;
-  --opsdash-text: #0f172a;
-  --opsdash-muted: #64748b;
+  background:color-mix(in oklab, var(--card), var(--brand) 10%);
 }
 #opsdash.opsdash-theme-light .cards-toolbar__tabs{
   border-bottom:1px solid var(--opsdash-border);
 }
 #opsdash.opsdash-theme-light .cards-toolbar{
-  background:linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  background:linear-gradient(180deg,
+    color-mix(in oklab, var(--card), #ffffff 40%) 0%,
+    var(--card) 100%);
 }
-#opsdash.opsdash-theme-light .tab-btn{
-  background:#ffffff;
+#opsdash.opsdash-theme-light .tab-btn,
+#opsdash.opsdash-theme-light .tab-menu-btn,
+#opsdash.opsdash-theme-light .tab-btn--add,
+#opsdash.opsdash-theme-light .cards-toolbar select,
+#opsdash.opsdash-theme-light .cards-toolbar__actions{
+  background:color-mix(in oklab, var(--card), #ffffff 60%);
   border-color:var(--opsdash-border);
   color:var(--opsdash-muted);
-  box-shadow:none;
 }
-#opsdash.opsdash-theme-light .tab-menu-btn{
-  background:#ffffff;
-  border-color:var(--opsdash-border);
-  color:var(--opsdash-muted);
-}
-#opsdash.opsdash-theme-light .tab-btn.active{
-  background:var(--opsdash-card);
-  border-color:var(--opsdash-border);
-  color:var(--opsdash-text);
-}
+#opsdash.opsdash-theme-light .tab-btn{ box-shadow:none; }
+#opsdash.opsdash-theme-light .cards-toolbar select{ color:var(--opsdash-text); }
+#opsdash.opsdash-theme-light .tab-btn.active,
 #opsdash.opsdash-theme-light .tab-menu-btn.active{
   background:var(--opsdash-card);
   border-color:var(--opsdash-border);
@@ -1562,20 +1609,6 @@
 }
 #opsdash.opsdash-theme-light .tab-btn.active::after{
   background:var(--opsdash-accent);
-}
-#opsdash.opsdash-theme-light .tab-btn--add{
-  background:#ffffff;
-  border-color:var(--opsdash-border);
-  color:var(--opsdash-muted);
-}
-#opsdash.opsdash-theme-light .cards-toolbar select{
-  background:#ffffff;
-  color:var(--opsdash-text);
-  border-color:var(--opsdash-border);
-}
-#opsdash.opsdash-theme-light .cards-toolbar__actions{
-  background:#ffffff;
-  border-color:#dbe4f0;
 }
 #opsdash.opsdash-theme-light .ghost-btn--edit{
   color:#ffffff;
@@ -1587,11 +1620,11 @@
   opacity:1;
 }
 #opsdash.opsdash-theme-light .tab-context-menu{
-  background:#ffffff;
+  background:color-mix(in oklab, var(--card), #ffffff 40%);
   border-color:var(--opsdash-border);
 }
 #opsdash.opsdash-theme-light .tab-context-menu button:hover{
-  background:#f1f5f9;
+  background:color-mix(in oklab, var(--card), var(--brand) 6%);
 }
 #opsdash.opsdash-theme-light .range-badge{
   background:var(--opsdash-card);
@@ -1610,92 +1643,50 @@
   color:var(--opsdash-muted);
 }
 #opsdash.opsdash-theme-dark .refresh-indicator{
-  background:#0f1a30;
+  background:color-mix(in oklab, var(--card), var(--fg) 4%);
   border-color:var(--opsdash-border);
   color:var(--opsdash-muted);
 }
 #opsdash.opsdash-theme-dark .refresh-indicator::before{
-  background:#60a5fa;
+  background:var(--brand);
 }
-#opsdash.opsdash-theme-light .layout-item{
-  background:var(--opsdash-card);
-  border:1px solid var(--opsdash-border);
-  box-shadow:0 2px 6px rgba(15,23,42,0.06);
-}
-#opsdash.opsdash-theme-light .card{
-  background:var(--opsdash-card);
-  border:1px solid color-mix(in oklab, var(--opsdash-border), #ffffff 75%);
-  box-shadow:
-    0 16px 30px rgba(15,23,42,0.14),
-    0 4px 12px rgba(15,23,42,0.1),
-    inset 0 1px 0 rgba(255,255,255,0.95),
-    inset 0 -1px 0 rgba(15,23,42,0.08);
-}
-#opsdash.opsdash-theme-light .balance-card{
-  border:1px solid color-mix(in oklab, var(--opsdash-border), #ffffff 75%);
-  box-shadow:
-    0 16px 30px rgba(15,23,42,0.14),
-    0 4px 12px rgba(15,23,42,0.1),
-    inset 0 1px 0 rgba(255,255,255,0.95),
-    inset 0 -1px 0 rgba(15,23,42,0.08);
-}
-#opsdash.opsdash-theme-dark .card{
-  border:1px solid color-mix(in oklab, var(--line), #ffffff 20%);
-  box-shadow:
-    0 18px 34px rgba(0,0,0,0.45),
-    0 6px 18px rgba(0,0,0,0.35),
-    inset 0 1px 0 rgba(255,255,255,0.08),
-    inset 0 -1px 0 rgba(0,0,0,0.4);
-}
-#opsdash.opsdash-theme-dark .balance-card{
-  border:1px solid color-mix(in oklab, var(--line), #ffffff 20%);
-  box-shadow:
-    0 18px 34px rgba(0,0,0,0.45),
-    0 6px 18px rgba(0,0,0,0.35),
-    inset 0 1px 0 rgba(255,255,255,0.08),
-    inset 0 -1px 0 rgba(0,0,0,0.4);
-}
+/* Legacy per-theme .card / .balance-card / .layout-item overrides
+   used an undefined --opsdash-card var and stacked hardcoded shadows
+   that fought the global .card treatment. Removed so the theme-aware
+   #opsdash .card at the top of this file is the single source of
+   truth. */
 #opsdash.opsdash-theme-light .app-content__navigation{
-  background:var(--opsdash-surface);
-  border-color:var(--opsdash-border);
-  box-shadow:none !important;
   outline:none;
 }
 #opsdash.opsdash-theme-light .widget-toolbar{
-  border:1px solid color-mix(in oklab, #2563eb, transparent 65%);
-  background:#ffffff;
-  box-shadow:0 10px 20px rgba(15,23,42,0.08);
+  border:1px solid color-mix(in oklab, var(--brand), transparent 65%);
+  background:var(--card);
+  box-shadow:0 10px 20px color-mix(in oklab, var(--fg) 10%, transparent);
 }
 #opsdash.opsdash-theme-light .widget-toolbar:hover{
-  background:#f8fafc;
-  box-shadow:0 12px 24px rgba(15,23,42,0.12);
+  background:color-mix(in oklab, var(--card), var(--brand) 3%);
+  box-shadow:0 12px 24px color-mix(in oklab, var(--fg) 14%, transparent);
 }
-#opsdash.opsdash-theme-light .toolbar-title{
-  color:#0f172a;
-}
+#opsdash.opsdash-theme-light .toolbar-title,
 #opsdash.opsdash-theme-light .toolbar-field{
-  color:#0f172a;
+  color:var(--fg);
 }
 #opsdash.opsdash-theme-light .toolbar-field span{
   opacity:0.7;
 }
 #opsdash.opsdash-theme-light .toolbar-field input[type="text"],
-#opsdash.opsdash-theme-light .toolbar-field select{
-  background:#ffffff;
-  color:#0f172a;
-  border-color:#d1d5db;
+#opsdash.opsdash-theme-light .toolbar-field select,
+#opsdash.opsdash-theme-light .widget-toolbar .ghost{
+  background:var(--card);
+  color:var(--fg);
+  border-color:var(--line);
 }
 #opsdash.opsdash-theme-light .toolbar-field input[type="color"]{
-  border-color:#d1d5db;
-}
-#opsdash.opsdash-theme-light .widget-toolbar .ghost{
-  background:#ffffff;
-  border-color:#d1d5db;
-  color:#0f172a;
+  border-color:var(--line);
 }
 #opsdash.opsdash-theme-light .widget-toolbar .ghost:hover{
-  background:#eff6ff;
-  border-color:#60a5fa;
+  background:color-mix(in oklab, var(--card), var(--brand) 6%);
+  border-color:color-mix(in oklab, var(--brand), transparent 40%);
 }
 @media (max-width: 980px){
   #opsdash .cards-toolbar--editing{
@@ -1856,100 +1847,81 @@
   color:var(--opsdash-muted);
 }
 #opsdash.opsdash-theme-dark .targets-card .status-on{
-  background:color-mix(in oklab, var(--opsdash-accent), #0b1220 70%);
+  background:color-mix(in oklab, var(--opsdash-accent), var(--card) 70%);
   color:#dbeafe;
 }
 #opsdash.opsdash-theme-dark .targets-card .status-risk{
-  background:color-mix(in oklab, #f97316, #0b1220 70%);
+  background:color-mix(in oklab, #f97316, var(--card) 70%);
   color:#fdba74;
 }
 #opsdash.opsdash-theme-dark .targets-card .status-behind{
-  background:color-mix(in oklab, #ef4444, #0b1220 70%);
+  background:color-mix(in oklab, #ef4444, var(--card) 70%);
   color:#fecaca;
 }
 #opsdash.opsdash-theme-dark .targets-card .status-done{
-  background:color-mix(in oklab, #22c55e, #0b1220 70%);
+  background:color-mix(in oklab, #22c55e, var(--card) 70%);
   color:#bbf7d0;
 }
 #opsdash.opsdash-theme-dark .targets-card .status-none{
-  background:color-mix(in oklab, var(--opsdash-muted), #0b1220 70%);
+  background:color-mix(in oklab, var(--opsdash-muted), var(--card) 70%);
   color:var(--opsdash-muted);
 }
 #opsdash.opsdash-theme-dark .notes-textarea{
-  background:#0f2440;
-  border-color:#1f3a5d;
+  background:color-mix(in oklab, var(--card), var(--brand) 8%);
+  border-color:color-mix(in oklab, var(--brand), transparent 60%);
   color:var(--opsdash-text);
 }
 #opsdash.opsdash-theme-dark .note-card{
-  background:#0f172a;
-  border-color:#1f2937;
+  background:var(--card);
+  border-color:var(--line);
   color:var(--opsdash-text);
 }
 #opsdash.opsdash-theme-dark .notes-textarea:focus{
-  border-color:#60a5fa;
-  box-shadow:0 0 0 1px #60a5fa;
+  border-color:var(--brand);
+  box-shadow:0 0 0 1px var(--brand);
 }
 #opsdash.opsdash-theme-dark .notes-textarea:read-only{
-  background:#112949;
+  background:color-mix(in oklab, var(--card), var(--brand) 12%);
   color:var(--opsdash-muted);
 }
-#opsdash.opsdash-theme-dark .note{
-  background:#0f2440;
-  border-color:#1f3a5d;
+#opsdash.opsdash-theme-dark .note,
+#opsdash.opsdash-theme-dark .note-select{
+  background:color-mix(in oklab, var(--card), var(--brand) 8%);
+  border-color:color-mix(in oklab, var(--brand), transparent 60%);
   color:var(--opsdash-text);
 }
 #opsdash.opsdash-theme-dark .note:read-only{
-  background:#112949;
+  background:color-mix(in oklab, var(--card), var(--brand) 12%);
   color:var(--opsdash-muted);
 }
-#opsdash.opsdash-theme-dark .note-select{
-  background:#0f2440;
-  border-color:#1f3a5d;
-  color:var(--opsdash-text);
-}
-#opsdash.opsdash-theme-dark .note-card .btn{
-  background:#0f1a30;
-  border-color:#1f3a5d;
+#opsdash.opsdash-theme-dark .note-card .btn,
+#opsdash.opsdash-theme-dark .deck-summary-card__row,
+#opsdash.opsdash-theme-dark .deck-panel__filters button,
+#opsdash.opsdash-theme-dark .deck-filter-btn{
+  background:color-mix(in oklab, var(--card), var(--fg) 4%);
+  border-color:var(--opsdash-border);
   color:var(--opsdash-text);
 }
 #opsdash.opsdash-theme-dark .note-card .btn--ghost{
   background:transparent;
 }
-#opsdash.opsdash-theme-dark .deck-summary-card__row{
-  background:#0f1a30;
-  border-color:#1e2a44;
-  color:var(--opsdash-text);
-}
 #opsdash.opsdash-theme-dark .deck-summary-card .bucket-count,
 #opsdash.opsdash-theme-dark .deck-summary-card .bucket-title{
-  background:#11213b;
+  background:color-mix(in oklab, var(--card), var(--brand) 8%);
 }
-#opsdash.opsdash-theme-dark .deck-panel__filters button{
-  background:#0f1a30;
-  border-color:var(--opsdash-border);
-  color:var(--opsdash-text);
-}
-#opsdash.opsdash-theme-dark .deck-panel__filters button[aria-pressed="true"]{
-  background:#1d4ed8;
-  color:#f8fafc;
-}
-#opsdash.opsdash-theme-dark .deck-filter-btn{
-  background:#0f1a30;
-  border-color:#1e2a44;
-  color:var(--opsdash-text);
-}
+#opsdash.opsdash-theme-dark .deck-panel__filters button[aria-pressed="true"],
 #opsdash.opsdash-theme-dark .deck-filter-btn.active{
-  background:#1d4ed8;
-  border-color:#2563eb;
+  background:var(--brand);
+  border-color:var(--brand);
   color:#f8fafc;
 }
 #opsdash.opsdash-theme-dark .deck-filter-count{
   color:var(--opsdash-muted);
 }
 #opsdash.opsdash-theme-dark .deck-card{
-  background:#0f1a30;
-  border-color:#1e2a44;
-  box-shadow:0 10px 20px rgba(15,23,42,0.25);
+  background:color-mix(in oklab, var(--card), var(--fg) 4%);
+  border-color:var(--opsdash-border);
+  box-shadow:0 10px 20px color-mix(in oklab, var(--fg) 25%, transparent);
 }
 #opsdash.opsdash-theme-dark .deck-card__status-row,
 #opsdash.opsdash-theme-dark .deck-card__stack,
@@ -2263,8 +2235,9 @@
 
 /* ── Mode band ── */
 #opsdash .mode-hint{
-  font-size:11px;color:var(--brand);font-weight:600;
-  opacity:.7;white-space:nowrap;align-self:center;padding-left:10px;
+  font-size:11px;font-weight:700;
+  color:color-mix(in oklab, var(--brand), var(--fg) 40%);
+  white-space:nowrap;align-self:center;padding-left:10px;
 }
 #opsdash .bar-row--edit-actions{
   gap:10px;
@@ -2315,10 +2288,20 @@
   padding:0 11px;
   flex-direction:row;
   gap:7px;
-  border:1px solid color-mix(in oklab,var(--brand),transparent 60%);
-  background:color-mix(in oklab,var(--brand),transparent 88%);
-  color:var(--brand);
-  box-shadow:0 3px 10px color-mix(in oklab,var(--brand),transparent 88%);
+  border:1px solid color-mix(in oklab,var(--brand),transparent 45%);
+  background:color-mix(in oklab,var(--brand),transparent 78%);
+  color:color-mix(in oklab, var(--brand), var(--fg) 25%);
+  box-shadow:0 3px 10px color-mix(in oklab,var(--brand),transparent 82%);
+}
+#opsdash.opsdash-theme-dark .ic--config,
+#opsdash.opsdash-theme-dark .ic-group__trigger{
+  background:color-mix(in oklab,var(--brand),transparent 55%);
+  border-color:color-mix(in oklab,var(--brand),transparent 20%);
+  color:var(--fg);
+}
+#opsdash.opsdash-theme-dark .ic-group.open .ic-group__trigger{
+  background:color-mix(in oklab,var(--brand),transparent 35%);
+  color:var(--fg);
 }
 #opsdash .ic--config svg{ width:18px;height:16px; }
 #opsdash .ic--config .ic-lbl{ font-size:10px; }

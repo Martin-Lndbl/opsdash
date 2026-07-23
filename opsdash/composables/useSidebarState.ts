@@ -39,12 +39,10 @@ export function useSidebarState() {
   }
 
   const navToggleLabel = computed(() => (navOpen.value ? 'Hide sidebar' : 'Show sidebar'))
-  const navToggleIcon = computed(() => (navOpen.value ? '⟨' : '⟩'))
 
   return {
     navOpen,
     toggleNav,
     navToggleLabel,
-    navToggleIcon,
   }
 }

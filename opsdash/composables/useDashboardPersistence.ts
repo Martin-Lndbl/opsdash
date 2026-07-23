@@ -5,6 +5,7 @@ import {
   normalizeTargetsConfig,
   type TargetsConfig,
 } from '../src/services/targets'
+import type { ScopePreference } from './useGlobalPreferences'
 import type { WidgetTabsState } from '../src/services/widgetsRegistry'
 import type { ThemePreference } from './useThemePreference'
 import {
@@ -34,6 +35,10 @@ interface DashboardPersistenceDeps {
   widgetTabs?: Ref<WidgetTabsState>
   onboardingState?: Ref<OnboardingState | null>
   activePreset?: Ref<string | null>
+  preferredScope?: Ref<ScopePreference>
+  globalAppBg?: Ref<string | null>
+  globalAppBgLight?: Ref<string | null>
+  globalAppBgDark?: Ref<string | null>
 }
 
 export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
@@ -42,7 +47,7 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
   let saveSequence = 0
   let latestRequestId = 0
 
-  function queueSave(reload = true) {
+  function queueSave(reload = true, silent = false) {
     if (saveTimer) {
       clearTimeout(saveTimer)
     }
@@ -77,6 +82,18 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
         }
         if (deps.activePreset !== undefined) {
           payload.active_preset = deps.activePreset.value ?? null
+        }
+        if (deps.preferredScope) {
+          payload.preferred_scope = deps.preferredScope.value
+        }
+        if (deps.globalAppBg) {
+          payload.global_app_bg = deps.globalAppBg.value ?? null
+        }
+        if (deps.globalAppBgLight) {
+          payload.global_app_bg_light = deps.globalAppBgLight.value ?? null
+        }
+        if (deps.globalAppBgDark) {
+          payload.global_app_bg_dark = deps.globalAppBgDark.value ?? null
         }
         const result = await deps.postJson(deps.route('persist'), payload)
         if (requestId !== latestRequestId) {
@@ -127,6 +144,20 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
           const fallback = deps.widgetTabs.value || createDefaultWidgetTabs('standard')
           deps.widgetTabs.value = normalizeWidgetTabs(nextWidgets, fallback)
         }
+        if (deps.preferredScope) {
+          const raw = result.preferred_scope_read ?? result.preferred_scope_saved
+          if (raw === 'calendar' || raw === 'category') {
+            deps.preferredScope.value = raw
+          }
+        }
+        const applyBg = (slot: Ref<string | null> | undefined, raw: unknown) => {
+          if (!slot) return
+          if (typeof raw === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw)) slot.value = raw
+          else if (raw === null) slot.value = null
+        }
+        applyBg(deps.globalAppBg, result.global_app_bg_read ?? result.global_app_bg_saved)
+        applyBg(deps.globalAppBgLight, result.global_app_bg_light_read ?? result.global_app_bg_light_saved)
+        applyBg(deps.globalAppBgDark, result.global_app_bg_dark_read ?? result.global_app_bg_dark_saved)
         if (deps.onboardingState) {
           const nextOnboarding = result.onboarding_read ?? result.onboarding_saved
           if (nextOnboarding && typeof nextOnboarding === 'object') {
@@ -144,13 +175,17 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
           await deps.onReload()
         }
 
-        deps.notifySuccess('Selection saved')
+        if (!silent) {
+          deps.notifySuccess('Selection saved')
+        }
       } catch (error) {
         if (requestId !== latestRequestId) {
           return
         }
         console.error(error)
-        deps.notifyError('Failed to save selection')
+        if (!silent) {
+          deps.notifyError('Failed to save selection')
+        }
       } finally {
         if (requestId === latestRequestId) {
           isSaving.value = false

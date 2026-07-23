@@ -99,6 +99,8 @@ final class PersistController extends Controller {
         $reportingSaved = null; $reportingRead = null;
         $deckSaved = null; $deckRead = null;
         $widgetsSaved = null; $widgetsRead = null;
+        $preferredScopeSaved = null; $preferredScopeRead = null;
+        $globalAppBgSaved = null; $globalAppBgRead = null;
         if (isset($data['targets_week'])) {
             $tw = $this->persistSanitizer->cleanTargets(is_array($data['targets_week']) ? $data['targets_week'] : [], $allowed);
             if ($resp = $this->writeUserJsonValue($uid, 'cal_targets_week', $tw, 'targets_week')) {
@@ -196,6 +198,49 @@ final class PersistController extends Controller {
             $deckSaved = $cleanDeck;
         }
         $deckRead = $this->userConfigService->readDeckSettings($this->appName, $uid);
+        if (array_key_exists('preferred_scope', $data)) {
+            $val = $data['preferred_scope'];
+            if ($val === 'calendar' || $val === 'category') {
+                $this->config->setUserValue($uid, $this->appName, 'preferred_scope', $val);
+                $preferredScopeSaved = $val;
+            } else {
+                try { $this->config->deleteUserValue($uid, $this->appName, 'preferred_scope'); } catch (\Throwable) {}
+            }
+            $didMutate = true;
+        }
+        $prefScopeRaw = (string)$this->config->getUserValue($uid, $this->appName, 'preferred_scope', '');
+        $preferredScopeRead = ($prefScopeRaw === 'calendar' || $prefScopeRaw === 'category') ? $prefScopeRaw : null;
+        if (array_key_exists('global_app_bg', $data)) {
+            $val = $data['global_app_bg'];
+            if (is_string($val) && preg_match('/^#[0-9a-fA-F]{6}$/', $val) === 1) {
+                $this->config->setUserValue($uid, $this->appName, 'global_app_bg', $val);
+                $globalAppBgSaved = $val;
+            } else {
+                try { $this->config->deleteUserValue($uid, $this->appName, 'global_app_bg'); } catch (\Throwable) {}
+            }
+            $didMutate = true;
+        }
+        $bgRaw = (string)$this->config->getUserValue($uid, $this->appName, 'global_app_bg', '');
+        $globalAppBgRead = (is_string($bgRaw) && preg_match('/^#[0-9a-fA-F]{6}$/', $bgRaw) === 1) ? $bgRaw : null;
+        $globalAppBgLightSaved = null;
+        $globalAppBgDarkSaved = null;
+        foreach (['global_app_bg_light', 'global_app_bg_dark'] as $slotKey) {
+            if (array_key_exists($slotKey, $data)) {
+                $val = $data[$slotKey];
+                if (is_string($val) && preg_match('/^#[0-9a-fA-F]{6}$/', $val) === 1) {
+                    $this->config->setUserValue($uid, $this->appName, $slotKey, $val);
+                    if ($slotKey === 'global_app_bg_light') $globalAppBgLightSaved = $val;
+                    else $globalAppBgDarkSaved = $val;
+                } else {
+                    try { $this->config->deleteUserValue($uid, $this->appName, $slotKey); } catch (\Throwable) {}
+                }
+                $didMutate = true;
+            }
+        }
+        $bgLightRaw = (string)$this->config->getUserValue($uid, $this->appName, 'global_app_bg_light', '');
+        $globalAppBgLightRead = (is_string($bgLightRaw) && preg_match('/^#[0-9a-fA-F]{6}$/', $bgLightRaw) === 1) ? $bgLightRaw : null;
+        $bgDarkRaw = (string)$this->config->getUserValue($uid, $this->appName, 'global_app_bg_dark', '');
+        $globalAppBgDarkRead = (is_string($bgDarkRaw) && preg_match('/^#[0-9a-fA-F]{6}$/', $bgDarkRaw) === 1) ? $bgDarkRaw : null;
         if (isset($data['widgets'])) {
             $cleanWidgets = $this->persistSanitizer->sanitizeWidgets($data['widgets']);
             if ($resp = $this->writeUserJsonValue($uid, 'widgets_layout', $cleanWidgets, 'widgets')) {
@@ -252,6 +297,14 @@ final class PersistController extends Controller {
             'deck_settings_read' => $deckRead,
             'widgets_saved' => $widgetsSaved,
             'widgets_read' => $widgetsRead,
+            'preferred_scope_saved' => $preferredScopeSaved,
+            'preferred_scope_read' => $preferredScopeRead,
+            'global_app_bg_saved' => $globalAppBgSaved,
+            'global_app_bg_read' => $globalAppBgRead,
+            'global_app_bg_light_saved' => $globalAppBgLightSaved,
+            'global_app_bg_light_read' => $globalAppBgLightRead,
+            'global_app_bg_dark_saved' => $globalAppBgDarkSaved,
+            'global_app_bg_dark_read' => $globalAppBgDarkRead,
         ], Http::STATUS_OK);
     }
 

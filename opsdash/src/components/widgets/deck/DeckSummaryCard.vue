@@ -96,7 +96,11 @@ let timer: ReturnType<typeof setInterval> | null = null
 
 const hasAnyData = computed(() => props.buckets.some((bucket) => bucket.count > 0))
 const titleText = computed(() => props.title || 'Deck summary')
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const showHeader = computed(() => props.showHeader !== false)
 const activeFilter = computed(() => props.activeFilter)
 const canFilter = computed(() => typeof props.onFilter === 'function')

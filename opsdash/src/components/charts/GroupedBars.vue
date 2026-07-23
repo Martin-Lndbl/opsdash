@@ -4,7 +4,8 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ctxFor, themeVar } from '../../services/charts'
+import { ctxFor, drawChartTooltip, paintPolishedBar, themeVar } from '../../services/charts'
+import { globalAppBg, activeThemeMode } from '../../../composables/useGlobalPreferences'
 
 const props = defineProps<{
   data?: {
@@ -14,11 +15,16 @@ const props = defineProps<{
   showLabels?: boolean
   xLabel?: string
   yLabel?: string
+  colorStyle?: 'fill' | 'outline'
+  colorTint?: number
 }>()
 
 const cv = ref<HTMLCanvasElement | null>(null)
 let ro: ResizeObserver | null = null
 let mo: MutationObserver | null = null
+let geometry: Array<{ x: number; y: number; w: number; h: number; label: string; value: number }> = []
+const hoverPos = ref<{ x: number; y: number } | null>(null)
+let hoverInfo: { label: string; value: number } | null = null
 
 function formatHours(value: number): string {
   const normalized = Math.max(0, Number(value) || 0)
@@ -45,14 +51,6 @@ function draw() {
   const line = themeVar(cvEl, '--line', '#e5e7eb')
   const fg = themeVar(cvEl, '--fg', '#0f172a')
   ctx.clearRect(0, 0, W, H)
-  ctx.strokeStyle = line
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.moveTo(x0, y0)
-  ctx.lineTo(x1, y0)
-  ctx.moveTo(x0, y0)
-  ctx.lineTo(x0, pad)
-  ctx.stroke()
   ctx.fillStyle = fg
   ctx.font = `${12 * textScale}px ui-sans-serif,system-ui`
   const xLabel = String(props.xLabel ?? '').trim()
@@ -83,6 +81,8 @@ function draw() {
   const barWidth = Math.max(4 * widgetSpace, (groupWidth - innerGap * (seriesCount - 1)) / seriesCount)
   const chartScale = (y0 - pad) / max
 
+  geometry = []
+  const bg = themeVar(cvEl, '--bg', '#ffffff')
   labels.forEach((label, groupIdx) => {
     const groupX = x0 + groupGap + groupIdx * (groupWidth + groupGap)
     series.forEach((row, seriesIdx) => {
@@ -90,8 +90,10 @@ function draw() {
       const h = Math.max(0, val * chartScale)
       const x = groupX + seriesIdx * (barWidth + innerGap)
       const y = y0 - h
-      ctx.fillStyle = row?.color || '#93c5fd'
-      ctx.fillRect(x, y, barWidth, h)
+      paintPolishedBar(ctx, x, y, barWidth, h, row?.color || '#93c5fd', props.colorStyle ?? 'fill', 'bar', (props.colorTint ?? 0) / 100)
+      const seriesLabel = String(row?.name ?? row?.label ?? row?.id ?? '')
+      const tooltipLabel = seriesLabel ? `${label} · ${seriesLabel}` : label
+      geometry.push({ x, y, w: barWidth, h, label: tooltipLabel, value: val })
       if (props.showLabels !== false && h > 14 * textScale && barWidth > 20 * textScale && val > 0.01) {
         ctx.fillStyle = fg
         ctx.font = `${12 * textScale}px ui-sans-serif,system-ui`
@@ -107,6 +109,44 @@ function draw() {
       ctx.fillText(label, groupX + groupWidth / 2 - tw / 2, y0 + 14 * textScale)
     }
   })
+  if (hoverInfo && hoverPos.value) {
+    drawChartTooltip(ctx, {
+      cursorX: hoverPos.value.x,
+      cursorY: hoverPos.value.y,
+      canvasWidth: W,
+      canvasHeight: H,
+      text: `${hoverInfo.label}: ${hoverInfo.value.toFixed(1)}h`,
+      bg,
+      fg,
+      scale: textScale,
+    })
+  }
+}
+
+function onMouseMove(event: MouseEvent) {
+  const cvEl = cv.value
+  if (!cvEl) return
+  const rect = cvEl.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  let nextInfo: { label: string; value: number } | null = null
+  for (let i = geometry.length - 1; i >= 0; i -= 1) {
+    const seg = geometry[i]
+    if (x >= seg.x && x <= seg.x + seg.w && y >= seg.y && y <= seg.y + seg.h) {
+      nextInfo = { label: seg.label, value: seg.value }
+      break
+    }
+  }
+  hoverPos.value = { x, y }
+  hoverInfo = nextInfo
+  draw()
+}
+function onMouseLeave() {
+  if (hoverInfo || hoverPos.value) {
+    hoverInfo = null
+    hoverPos.value = null
+    draw()
+  }
 }
 
 function bindObservers() {
@@ -127,14 +167,30 @@ onMounted(() => {
   draw()
   bindObservers()
   window.addEventListener('resize', draw)
+  const el = cv.value
+  if (el) {
+    el.addEventListener('mousemove', onMouseMove)
+    el.addEventListener('mouseleave', onMouseLeave)
+  }
 })
 onBeforeUnmount(() => {
   try { window.removeEventListener('resize', draw) } catch (_) {}
   try { ro && cv.value && ro.unobserve(cv.value) } catch (_) {}
   try { mo && mo.disconnect() } catch (_) {}
+  try {
+    const el = cv.value
+    if (el) {
+      el.removeEventListener('mousemove', onMouseMove)
+      el.removeEventListener('mouseleave', onMouseLeave)
+    }
+  } catch (_) {}
   ro = null
   mo = null
 })
 watch(() => props.data, () => draw(), { deep: true })
 watch(() => props.showLabels, () => draw())
+watch(() => props.colorStyle, () => draw())
+watch(() => props.colorTint, () => draw())
+watch([globalAppBg, activeThemeMode], () => draw())
+
 </script>

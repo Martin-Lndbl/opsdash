@@ -54,6 +54,299 @@ export function invert(hex: string): string {
   return rgbToHex(255 - rgb.r, 255 - rgb.g, 255 - rgb.b)
 }
 
+function parseColorString(input: string): RgbColor | null {
+  const s = (input || '').trim()
+  if (!s) return null
+  if (s.startsWith('#')) return hexToRgb(s)
+  const m = /^rgba?\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/.exec(s)
+  if (m) return { r: Math.round(Number(m[1])), g: Math.round(Number(m[2])), b: Math.round(Number(m[3])) }
+  return null
+}
+
+function mixToward(rgb: RgbColor, target: number, ratio: number): string {
+  const p = Math.max(0, Math.min(1, ratio))
+  const r = Math.round(rgb.r + (target - rgb.r) * p)
+  const g = Math.round(rgb.g + (target - rgb.g) * p)
+  const b = Math.round(rgb.b + (target - rgb.b) * p)
+  return `rgb(${r}, ${g}, ${b})`
+}
+
+function neutralCardFill(ctx: CanvasRenderingContext2D): string {
+  const cvEl = ctx.canvas as HTMLCanvasElement
+  const cardBg = themeVar(cvEl, '--card', '#ffffff')
+  const fgColor = themeVar(cvEl, '--fg', '#0f172a')
+  const cardRgb = parseColorString(cardBg) ?? { r: 255, g: 255, b: 255 }
+  const fgRgb = parseColorString(fgColor) ?? { r: 15, g: 23, b: 42 }
+  // 6% fg mix — the original neutral, per user preference.
+  const mix = (a: number, b: number) => Math.round(a * 0.94 + b * 0.06)
+  return `rgb(${mix(cardRgb.r, fgRgb.r)}, ${mix(cardRgb.g, fgRgb.g)}, ${mix(cardRgb.b, fgRgb.b)})`
+}
+
+// Rec.709 relative luminance on 0..255 input, 0..1 output.
+const luminance = (rgb: RgbColor) => (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255
+
+function isCardLight(ctx: CanvasRenderingContext2D): boolean {
+  const rgb = parseColorString(themeVar(ctx.canvas as HTMLCanvasElement, '--card', '#ffffff'))
+  return luminance(rgb ?? { r: 255, g: 255, b: 255 }) > 0.55
+}
+
+// Outline mode on light cards: mint/sky/yellow strokes ghost out.
+// Ramp: lum ≤ 0.35 unchanged, lum 1.0 mixed 42% toward black.
+function outlineStrokeColor(ctx: CanvasRenderingContext2D, color: string): string {
+  const rgb = parseColorString(color)
+  if (!rgb || !isCardLight(ctx)) return color
+  const lum = luminance(rgb)
+  if (lum <= 0.35) return color
+  return mixToward(rgb, 0, ((lum - 0.35) / 0.65) * 0.42)
+}
+
+function tintOverlay(color: string, alphaTop: number, alphaBottom: number): (grad: CanvasGradient) => void {
+  const rgb = parseColorString(color) ?? { r: 147, g: 197, b: 253 }
+  return (grad) => {
+    grad.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alphaTop})`)
+    grad.addColorStop(0.6, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alphaBottom})`)
+    grad.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0)`)
+  }
+}
+
+export type ChartColorStyle = 'fill' | 'outline'
+
+// Filled bar: base color at bottom, ~18% lighter at top. TimeSummary
+// week-bar look.
+function paintFilledBar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: string,
+): void {
+  const rgb = parseColorString(color) ?? { r: 147, g: 197, b: 253 }
+  const light = mixToward(rgb, 255, 0.18)
+  const base = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
+  const grad = ctx.createLinearGradient(0, y, 0, y + h)
+  grad.addColorStop(0, light)
+  grad.addColorStop(1, base)
+  ctx.fillStyle = grad
+  ctx.fillRect(x, y, w, h)
+}
+
+// Outlined bar: neutral card-ish fill + item color as a 2px inset left
+// accent and 1px outer stroke. Optional color-tint gradient overlay
+// (intensity 0-1) fades from top-of-bar towards transparent.
+function paintOutlinedBar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: string,
+  tint = 0,
+): void {
+  ctx.fillStyle = neutralCardFill(ctx)
+  ctx.fillRect(x, y, w, h)
+  if (tint > 0) {
+    const grad = ctx.createLinearGradient(0, y, 0, y + h)
+    tintOverlay(color, 0.16 * tint, 0.04 * tint)(grad)
+    ctx.fillStyle = grad
+    ctx.fillRect(x, y, w, h)
+  }
+  const stroke = outlineStrokeColor(ctx, color)
+  const accentW = Math.min(2, w)
+  ctx.fillStyle = stroke
+  ctx.fillRect(x, y, accentW, h)
+  if (w >= 2 && h >= 2) {
+    ctx.strokeStyle = stroke
+    ctx.lineWidth = isCardLight(ctx) ? 1.25 : 1
+    ctx.strokeRect(x + 0.5, y + 0.5, Math.max(0, w - 1), Math.max(0, h - 1))
+  }
+}
+
+// Outlined stacked segment: neutral fill + 2px left accent, 2px right
+// accent, and a 2px top color band. Bottom is intentionally left off
+// because adjacent segments would double up on the seam.
+function paintOutlinedStackedSegment(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: string,
+  tint = 0,
+): void {
+  ctx.fillStyle = neutralCardFill(ctx)
+  ctx.fillRect(x, y, w, h)
+  if (tint > 0) {
+    const grad = ctx.createLinearGradient(0, y, 0, y + h)
+    tintOverlay(color, 0.18 * tint, 0.05 * tint)(grad)
+    ctx.fillStyle = grad
+    ctx.fillRect(x, y, w, h)
+  }
+  const stroke = outlineStrokeColor(ctx, color)
+  const accentW = Math.min(2, w)
+  ctx.fillStyle = stroke
+  ctx.fillRect(x, y, accentW, h)
+  if (w > accentW) {
+    ctx.fillRect(x + w - accentW, y, accentW, h)
+  }
+  if (h > 2) {
+    const topH = Math.min(2, h)
+    ctx.fillRect(x, y, w, topH)
+  }
+}
+
+// Router. Each chart widget picks its style; default is filled.
+// variant='segment' hints that the bar is one slice of a stacked bar,
+// so the outline treatment avoids doubling up at segment seams.
+// tint (0-1) controls the intensity of the outline-mode color gradient
+// overlay. tint=0 (default) keeps the pre-gradient neutral fill; higher
+// values add more color character.
+export function paintPolishedBar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: string,
+  style: ChartColorStyle = 'fill',
+  variant: 'bar' | 'segment' = 'bar',
+  tint = 0,
+): void {
+  if (w <= 0 || h <= 0) return
+  if (style === 'outline') {
+    if (variant === 'segment') paintOutlinedStackedSegment(ctx, x, y, w, h, color, tint)
+    else paintOutlinedBar(ctx, x, y, w, h, color, tint)
+  } else paintFilledBar(ctx, x, y, w, h, color)
+}
+
+function paintFilledSlice(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  r: number,
+  startAngle: number,
+  endAngle: number,
+  color: string,
+): void {
+  const rgb = parseColorString(color) ?? { r: 147, g: 197, b: 253 }
+  const light = mixToward(rgb, 255, 0.22)
+  const base = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
+  grad.addColorStop(0, light)
+  grad.addColorStop(0.65, base)
+  grad.addColorStop(1, base)
+  ctx.fillStyle = grad
+  ctx.beginPath()
+  ctx.moveTo(cx, cy)
+  ctx.arc(cx, cy, r, startAngle, endAngle)
+  ctx.closePath()
+  ctx.fill()
+}
+
+function paintOutlinedSlice(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  r: number,
+  startAngle: number,
+  endAngle: number,
+  color: string,
+  tint = 0,
+): void {
+  ctx.beginPath()
+  ctx.moveTo(cx, cy)
+  ctx.arc(cx, cy, r, startAngle, endAngle)
+  ctx.closePath()
+  ctx.fillStyle = neutralCardFill(ctx)
+  ctx.fill()
+  if (tint > 0) {
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
+    const rgb = parseColorString(color) ?? { r: 147, g: 197, b: 253 }
+    grad.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${0.02 * tint})`)
+    grad.addColorStop(0.75, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${0.08 * tint})`)
+    grad.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${0.22 * tint})`)
+    ctx.fillStyle = grad
+    ctx.fill()
+  }
+  ctx.strokeStyle = outlineStrokeColor(ctx, color)
+  ctx.lineWidth = isCardLight(ctx) ? 2 : 1.5
+  ctx.stroke()
+}
+
+export function paintPolishedSlice(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  r: number,
+  startAngle: number,
+  endAngle: number,
+  color: string,
+  style: ChartColorStyle = 'fill',
+  tint = 0,
+): void {
+  if (r <= 0) return
+  if (style === 'outline') paintOutlinedSlice(ctx, cx, cy, r, startAngle, endAngle, color, tint)
+  else paintFilledSlice(ctx, cx, cy, r, startAngle, endAngle, color)
+}
+
+// Small floating tooltip painted onto a chart canvas near the cursor.
+// Clamped to stay inside the canvas box.
+export function drawChartTooltip(
+  ctx: CanvasRenderingContext2D,
+  opts: {
+    cursorX: number
+    cursorY: number
+    canvasWidth: number
+    canvasHeight: number
+    text: string
+    bg: string
+    fg: string
+    scale?: number
+  },
+): void {
+  const scale = Math.max(0.8, Number(opts.scale) || 1)
+  const fontSize = 11 * scale
+  const padX = 8 * scale
+  const padY = 5 * scale
+  ctx.save()
+  ctx.font = `${fontSize}px ui-sans-serif,system-ui`
+  const tw = ctx.measureText(opts.text).width
+  const w = tw + padX * 2
+  const h = fontSize + padY * 2
+  const margin = 6
+  let bx = opts.cursorX + 12
+  let by = opts.cursorY - h - 12
+  if (bx + w + margin > opts.canvasWidth) bx = opts.cursorX - w - 12
+  if (bx < margin) bx = margin
+  if (by < margin) by = opts.cursorY + 16
+  if (by + h + margin > opts.canvasHeight) by = opts.canvasHeight - h - margin
+  const r = 6
+  ctx.beginPath()
+  ctx.moveTo(bx + r, by)
+  ctx.lineTo(bx + w - r, by)
+  ctx.quadraticCurveTo(bx + w, by, bx + w, by + r)
+  ctx.lineTo(bx + w, by + h - r)
+  ctx.quadraticCurveTo(bx + w, by + h, bx + w - r, by + h)
+  ctx.lineTo(bx + r, by + h)
+  ctx.quadraticCurveTo(bx, by + h, bx, by + h - r)
+  ctx.lineTo(bx, by + r)
+  ctx.quadraticCurveTo(bx, by, bx + r, by)
+  ctx.closePath()
+  ctx.shadowColor = 'rgba(0,0,0,0.16)'
+  ctx.shadowBlur = 8
+  ctx.shadowOffsetY = 2
+  ctx.fillStyle = opts.bg
+  ctx.fill()
+  ctx.shadowColor = 'transparent'
+  ctx.shadowBlur = 0
+  ctx.shadowOffsetY = 0
+  ctx.fillStyle = opts.fg
+  ctx.textBaseline = 'middle'
+  ctx.textAlign = 'left'
+  ctx.fillText(opts.text, bx + padX, by + h / 2)
+  ctx.restore()
+}
+
 // Muted paper → steel gradient for heatmap cells
 export function heatColor(t: number): string {
   const clamp = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x)

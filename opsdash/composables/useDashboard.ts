@@ -14,6 +14,7 @@ import {
 } from '../src/services/reporting'
 import { normalizeWidgetTabs, type WidgetTabsState } from '../src/services/widgetsRegistry'
 import { createDefaultWidgetTabs, setWidgetPresets } from '../src/services/widgetDefaults'
+import { preferredScope, globalAppBgLight, globalAppBgDark } from './useGlobalPreferences'
 import { readBootstrapThemePreference } from '../src/services/theme'
 import { readCurrentUserId } from '../src/services/currentUser'
 import { setUserDateTimeConfig } from '../src/services/dateTime'
@@ -255,6 +256,21 @@ export function useDashboard(deps: DashboardDeps) {
         targetsConfig.value = normalizeTargetsConfig(json.targetsConfig ?? createDefaultTargetsConfig())
         const themeRaw = typeof json.themePreference === 'string' ? json.themePreference : ''
         themePreference.value = themeRaw === 'light' || themeRaw === 'dark' ? (themeRaw as 'light' | 'dark') : 'auto'
+        // Global user preferences (persisted server-side; falls back to defaults when absent).
+        if (json.preferredScope === 'calendar' || json.preferredScope === 'category') {
+          preferredScope.value = json.preferredScope
+        }
+        // Per-theme slots (light + dark). Ignore the legacy
+        // single-value globalAppBg: seeding both slots from one
+        // saved color reintroduces the cross-theme bleed the split
+        // was meant to fix.
+        const parseBg = (v: unknown) =>
+          typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v
+          : v === null ? null : undefined
+        const lightRaw = parseBg(json.globalAppBgLight)
+        const darkRaw = parseBg(json.globalAppBgDark)
+        if (lightRaw !== undefined) globalAppBgLight.value = lightRaw
+        if (darkRaw !== undefined) globalAppBgDark.value = darkRaw
 
         if (deps.isDebug?.()) {
           console.group('[opsdash] calendars/colors')

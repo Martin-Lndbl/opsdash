@@ -41,6 +41,12 @@
           @input="onCustom"
         />
       </label>
+      <button
+        v-if="allowClear"
+        type="button"
+        class="cpp-clear"
+        @click="clear"
+      >{{ clearLabel }}</button>
     </div>
   </div>
 </template>
@@ -53,10 +59,14 @@ const props = withDefaults(defineProps<{
   palette?: string[]
   ariaLabel?: string
   disabled?: boolean
+  allowClear?: boolean
+  clearLabel?: string
 }>(), {
   palette: () => ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899', '#14B8A6', '#F59E0B', '#6366F1', '#EF4444', '#64748B', '#000000', '#ffffff'],
   ariaLabel: 'Choose color',
   disabled: false,
+  allowClear: false,
+  clearLabel: 'Follow global',
 })
 
 const emit = defineEmits<{ (e: 'update:modelValue', value: string): void }>()
@@ -74,6 +84,11 @@ function close() { open.value = false }
 
 function pick(color: string) {
   emit('update:modelValue', color)
+  close()
+}
+
+function clear() {
+  emit('update:modelValue', '')
   close()
 }
 

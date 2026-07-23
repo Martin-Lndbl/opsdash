@@ -104,6 +104,8 @@ final class PersistWidgetsSanitizer {
                 'forecastMode' => $FORECAST,
                 'filterMode'   => $FILTER_MODE,
                 'filterIds'    => $ID_LIST,
+                'colorStyle'   => ['t' => 'select', 'v' => ['fill', 'outline']],
+                'colorTint'    => ['t' => 'number', 'min' => 0.0, 'max' => 100.0],
             ],
             'chart_hod' => $CORE + [
                 'showLegend'   => $BOOL,
@@ -121,6 +123,8 @@ final class PersistWidgetsSanitizer {
                 'forecastMode' => $FORECAST,
                 'filterMode'   => $FILTER_MODE,
                 'filterIds'    => $ID_LIST,
+                'colorStyle'   => ['t' => 'select', 'v' => ['fill', 'outline']],
+                'colorTint'    => ['t' => 'number', 'min' => 0.0, 'max' => 100.0],
             ],
             'chart_pie' => $CORE + [
                 'showLegend' => $BOOL,
@@ -128,6 +132,8 @@ final class PersistWidgetsSanitizer {
                 'compact'    => $BOOL,
                 'filterMode' => $FILTER_MODE,
                 'filterIds'  => $ID_LIST,
+                'colorStyle' => ['t' => 'select', 'v' => ['fill', 'outline']],
+                'colorTint'  => ['t' => 'number', 'min' => 0.0, 'max' => 100.0],
             ],
             'chart_stacked' => $CORE + [
                 'showLegend'   => $BOOL,
@@ -136,6 +142,8 @@ final class PersistWidgetsSanitizer {
                 'forecastMode' => $FORECAST,
                 'filterMode'   => $FILTER_MODE,
                 'filterIds'    => $ID_LIST,
+                'colorStyle'   => ['t' => 'select', 'v' => ['fill', 'outline']],
+                'colorTint'    => ['t' => 'number', 'min' => 0.0, 'max' => 100.0],
             ],
             'dayoff_trend' => $CORE + [
                 'reverseOrder'    => $BOOL,
@@ -189,6 +197,7 @@ final class PersistWidgetsSanitizer {
                 'localGroupsById'        => ['t' => 'targets_map'],
                 'localTargetsWeek'       => ['t' => 'targets_map'],
                 'localTargetsMonth'      => ['t' => 'targets_map'],
+                'colorStyle'             => ['t' => 'select', 'v' => ['fill', 'outline']],
             ],
             'text_block' => $CORE + [
                 'content' => ['t' => 'text', 'maxlen' => 4096],
