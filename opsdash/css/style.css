@@ -411,8 +411,8 @@
   background-color:var(--card);
   background-image:
     linear-gradient(180deg,
-      color-mix(in oklab, var(--card), #ffffff 4%) 0%,
-      var(--card) 62%),
+      color-mix(in oklab, var(--card), #ffffff 2%) 0%,
+      var(--card) 32%),
     radial-gradient(100% 70% at 0% 0%, color-mix(in oklab, var(--brand, #2563eb) 6%, transparent), transparent 24%);
   border:1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 84%);
   border-radius:calc(var(--opsdash-radius) * var(--widget-space, 1));
