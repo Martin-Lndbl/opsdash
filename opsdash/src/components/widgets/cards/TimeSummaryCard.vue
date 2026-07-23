@@ -4,16 +4,16 @@
       <span>{{ headerText }}</span>
       </div>
     <div v-if="showOverviewPanel" class="time-summary-daily">
-      <div class="time-summary-hero" v-if="showToday && todayTotal !== null">
+      <div class="time-summary-hero" v-if="showToday && activeDay">
         <div>
-          <div class="time-summary-hero__label">Today</div>
-          <div class="time-summary-hero__value">{{ n1(todayTotal) }}<span>h</span></div>
-          <div v-if="todayPlannedHours > 0" class="time-summary-hero__planned">{{ n1(todayPlannedHours) }} h planned later</div>
+          <div class="time-summary-hero__label">{{ activeDayLabel }}</div>
+          <div class="time-summary-hero__value">{{ n1(activeDayHours ?? 0) }}<span>h</span></div>
+          <div v-if="isActiveDayToday && todayPlannedHours > 0" class="time-summary-hero__planned">{{ n1(todayPlannedHours) }} h planned later</div>
         </div>
         <div class="time-summary-hero__side">
           <strong>{{ todayEvents }}</strong>
           <span>events</span>
-          <span v-if="todayEvents > 0 && longestSessionLabel !== '—'">{{ longestSessionLabel }} longest</span>
+          <span v-if="isActiveDayToday && todayEvents > 0 && longestSessionLabel !== '—'">{{ longestSessionLabel }} longest</span>
         </div>
       </div>
 
@@ -101,18 +101,21 @@
       </div>
 
       <div v-if="showWeekMiniChart && weekDays.length" class="time-summary-week">
-        <div
+        <button
           v-for="day in weekDays"
           :key="day.date"
+          type="button"
           class="time-summary-week__day"
-          :class="{ active: day.isToday }"
+          :class="{ active: day.date === activeDayKey, today: day.isToday }"
           :title="`${day.label}: ${n1(day.hours)} h`"
+          :aria-pressed="day.date === activeDayKey"
+          @click="selectDay(day)"
         >
           <i class="time-summary-week__bar" :style="{ height: `${dayHeight(day.hours)}%` }">
             <strong>{{ n1(day.hours) }}h</strong>
           </i>
           <span>{{ day.label }}</span>
-        </div>
+        </button>
       </div>
 
     </div>
@@ -533,14 +536,53 @@ function selectView(view: OverviewView) {
 const showTabs = computed(() => availableViews.value.length > 1)
 const weekDays = computed<WeekDay[]>(() => Array.isArray(props.weekDays) ? props.weekDays : [])
 const todayWeekEntry = computed(() => weekDays.value.find((day) => day.isToday) ?? null)
+
+// User can click a day bar at the bottom to pick a specific day. On
+// current periods the default is today; on past/future periods where
+// today isn't in the visible range, default to the first day (Monday
+// for weeks, the 1st for months). If the stored selection isn't in
+// the current range it falls back to the same default.
+const selectedDayKey = ref<string | null>(null)
+const defaultDayKey = computed<string | null>(() => {
+  const days = weekDays.value
+  if (!days.length) return null
+  const today = days.find((d) => d.isToday)
+  return (today ?? days[0]).date
+})
+const activeDayKey = computed<string | null>(() => {
+  const key = selectedDayKey.value
+  if (key && weekDays.value.some((d) => d.date === key)) return key
+  return defaultDayKey.value
+})
+const activeDay = computed<WeekDay | null>(() =>
+  weekDays.value.find((day) => day.date === activeDayKey.value) ?? null,
+)
+const isActiveDayToday = computed(() => Boolean(activeDay.value?.isToday))
+const activeDayLabel = computed<string>(() => {
+  if (isActiveDayToday.value) return 'Today'
+  return String(activeDay.value?.label ?? '')
+})
+const activeDayHours = computed<number | null>(() => {
+  if (activeDay.value == null) return todayTotal.value
+  const value = Number(activeDay.value.hours)
+  return Number.isFinite(value) ? Math.max(0, value) : 0
+})
+function selectDay(day: WeekDay) {
+  selectedDayKey.value = day.date
+}
+
 const todayEvents = computed(() => {
-  const events = Number(todayWeekEntry.value?.events ?? NaN)
+  const events = Number(activeDay.value?.events ?? NaN)
   if (Number.isFinite(events)) return Math.max(0, Math.trunc(events))
-  return Math.max(0, Math.trunc(Number(activity.value?.events ?? 0)))
+  if (isActiveDayToday.value) {
+    return Math.max(0, Math.trunc(Number(activity.value?.events ?? 0)))
+  }
+  return 0
 })
 const todayAvgEvent = computed(() => {
-  if (todayEvents.value > 0 && todayTotal.value != null) return todayTotal.value / todayEvents.value
-  if (todayTotal.value != null) return 0
+  const hours = activeDayHours.value
+  if (todayEvents.value > 0 && hours != null) return hours / todayEvents.value
+  if (hours != null) return 0
   return props.summary.avgEvent
 })
 const weekMaxHours = computed(() => Math.max(0, ...weekDays.value.map((day) => Number(day.hours) || 0)))
@@ -1130,6 +1172,17 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   font-size: calc(10px * var(--widget-scale, 1));
   text-align: center;
   position: relative;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  appearance: none;
+}
+.time-summary-week__day:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--brand, #2563eb) 60%, transparent);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 .time-summary-week__day::before {
   content: '';
