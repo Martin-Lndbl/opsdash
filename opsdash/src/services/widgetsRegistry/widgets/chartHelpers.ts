@@ -48,6 +48,18 @@ export function normalizeChartFilterMode(input: any): ChartFilterMode {
   return preferredScope.value
 }
 
+export function buildCategoryLabelMap(ctx: any): Record<string, string> {
+  const groups = Array.isArray(ctx?.calendarGroups) ? ctx.calendarGroups : []
+  const out: Record<string, string> = {}
+  groups.forEach((group: any) => {
+    const id = String(group?.id ?? '')
+    if (!id) return
+    const label = group?.label ?? group?.name ?? id
+    out[id] = String(label)
+  })
+  return out
+}
+
 export function buildChartFilterControls(options: any, ctx: any) {
   const mode = normalizeChartFilterMode(options?.filterMode)
   const calOptions = Array.isArray(ctx?.calendars)
@@ -101,6 +113,7 @@ export function aggregateStackedByCategory(
   calendarCategoryMap: Record<string, string>,
   categoryFilter: Set<string>,
   categoryColorMap: Record<string, string>,
+  categoryLabelMap: Record<string, string> = {},
 ): StackedData | null {
   if (!stacked || !Array.isArray(stacked.series)) return null
   const labels = stacked.labels || []
@@ -121,13 +134,16 @@ export function aggregateStackedByCategory(
     })
   })
   if (!map.size) return null
-  const series = Array.from(map.entries()).map(([catId, data]) => ({
-    id: catId,
-    name: catId,
-    label: catId,
-    color: categoryColorMap?.[catId],
-    data,
-  }))
+  const series = Array.from(map.entries()).map(([catId, data]) => {
+    const displayName = categoryLabelMap?.[catId] || catId
+    return {
+      id: catId,
+      name: displayName,
+      label: displayName,
+      color: categoryColorMap?.[catId],
+      data,
+    }
+  })
   return { labels, series }
 }
 

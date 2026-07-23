@@ -488,11 +488,6 @@
   background:transparent;
   padding:0;
 }
-#opsdash .card.full .card .chart{
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:12px;
-}
 #opsdash .value{
   font-size:30px;
   font-weight:800;

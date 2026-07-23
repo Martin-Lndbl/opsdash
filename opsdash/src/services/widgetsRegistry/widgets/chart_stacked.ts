@@ -7,6 +7,7 @@ import {
   buildChartFilterControls,
   filterStackedByIds,
   resolveChartFilter,
+  buildCategoryLabelMap,
 } from './chartHelpers'
 
 const ChartStackedWidget = defineAsyncComponent(() =>
@@ -54,7 +55,7 @@ export const chartStackedEntry: RegistryEntry = {
     })
     const stacked =
       mode === 'category'
-        ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, ids, categoryColorMap)
+        ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, ids, categoryColorMap, buildCategoryLabelMap(ctx))
         : filterStackedByIds(baseStacked, ids)
     return {
       title: buildTitle(baseTitle, def.options?.titlePrefix),

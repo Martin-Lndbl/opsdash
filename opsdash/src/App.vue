@@ -310,7 +310,7 @@
                           class="ic-color-swatch ic-color-reset"
                           :class="{ on: !globalAppBg }"
                           title="Follow theme"
-                          @click.stop="() => { globalAppBg = null; inlineGroupOpen = null }"
+                          @click.stop="setGlobalAppBg(null)"
                         />
                         <button
                           v-for="color in CARD_BG_PALETTE"
@@ -320,13 +320,13 @@
                           :class="{ on: globalAppBg?.toUpperCase() === color.toUpperCase() }"
                           :style="{ background: color }"
                           :title="color"
-                          @click.stop="() => { globalAppBg = color; inlineGroupOpen = null }"
+                          @click.stop="setGlobalAppBg(color)"
                         />
                         <label class="ic-color-custom" title="Custom color">
                           <input
                             type="color"
                             :value="globalAppBg ?? '#ffffff'"
-                            @change.stop="(e) => { globalAppBg = (e.target as HTMLInputElement).value; inlineGroupOpen = null }"
+                            @change.stop="(e) => setGlobalAppBg((e.target as HTMLInputElement).value)"
                           />
                         </label>
                       </div>
@@ -1901,6 +1901,10 @@ function setInlineScale(target: 'sm' | 'md' | 'lg' | 'xl') {
   setSelectedOption('scale', target)
 }
 
+function setGlobalAppBg(value: string | null) {
+  globalAppBg.value = value
+  inlineGroupOpen.value = null
+}
 function toggleInlineGroup(group: 'width' | 'height' | 'scale' | 'color') {
   if (!inlineSelectedItem.value) return
   inlineGroupOpen.value = inlineGroupOpen.value === group ? null : group

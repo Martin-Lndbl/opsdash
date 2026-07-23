@@ -10,6 +10,7 @@ import {
   formatLookbackLabel,
   getLookbackColor,
   resolveChartFilter,
+  buildCategoryLabelMap,
   sortLookbackOffsets,
 } from './chartHelpers'
 
@@ -76,7 +77,7 @@ export const chartPerDayEntry: RegistryEntry = {
         })
         const stacked =
           mode === 'category'
-            ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, ids, categoryColorMap)
+            ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, ids, categoryColorMap, buildCategoryLabelMap(ctx))
             : filterStackedByIds(baseStacked, ids)
         const perDay = buildPerDayFromStacked(stacked)
         if (!perDay) return
@@ -104,7 +105,7 @@ export const chartPerDayEntry: RegistryEntry = {
       })
       const stacked =
         mode === 'category'
-          ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, ids, categoryColorMap)
+          ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, ids, categoryColorMap, buildCategoryLabelMap(ctx))
           : filterStackedByIds(baseStacked, ids)
       chartData = buildPerDayFromStacked(stacked)
     }
