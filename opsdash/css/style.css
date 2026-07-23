@@ -112,15 +112,18 @@
   width:var(--opsdash-sidebar-width);
   max-width:var(--opsdash-sidebar-width);
   height:100%;
-  background:transparent;
-  border:none;
+  background-color:color-mix(in oklab, var(--card), var(--fg) 3%);
+  background-image:linear-gradient(180deg,
+    color-mix(in oklab, var(--card), var(--fg) 2%) 0%,
+    color-mix(in oklab, var(--card), var(--fg) 4%) 100%);
+  border:1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 80%);
   border-radius:calc(var(--opsdash-radius) - 2px);
   padding:0 !important;
   overflow-x:hidden !important;
   overflow-y:auto !important;
   scrollbar-gutter:stable;
   direction:rtl;
-  box-shadow:none;
+  box-shadow:inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 60%);
   transition:width .25s ease, max-width .25s ease, padding .25s ease, border .25s ease, box-shadow .25s ease, opacity .2s ease;
 }
 #opsdash .app-content__navigation[aria-hidden="true"]{
@@ -432,6 +435,13 @@
 #opsdash.has-app-bg .card:hover,
 #opsdash.has-app-bg .balance-card:hover{
   box-shadow:inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 65%, transparent);
+}
+/* Sidebar container: drop the surface gradient overlay when the
+   user has picked a custom bg, but keep the subtle --fg-tinted
+   background so the sidebar still reads as a distinct panel next
+   to the widget grid. */
+#opsdash.has-app-bg .app-content__navigation{
+  background-image:none;
 }
 #opsdash .card:hover,
 #opsdash .balance-card:hover{
@@ -1660,9 +1670,6 @@
    #opsdash .card at the top of this file is the single source of
    truth. */
 #opsdash.opsdash-theme-light .app-content__navigation{
-  background:var(--opsdash-surface);
-  border-color:var(--opsdash-border);
-  box-shadow:none !important;
   outline:none;
 }
 #opsdash.opsdash-theme-light .widget-toolbar{
