@@ -14,6 +14,7 @@ import {
 } from '../src/services/reporting'
 import { normalizeWidgetTabs, type WidgetTabsState } from '../src/services/widgetsRegistry'
 import { createDefaultWidgetTabs, setWidgetPresets } from '../src/services/widgetDefaults'
+import { preferredScope, globalAppBg } from './useGlobalPreferences'
 import { readBootstrapThemePreference } from '../src/services/theme'
 import { readCurrentUserId } from '../src/services/currentUser'
 import { setUserDateTimeConfig } from '../src/services/dateTime'
@@ -255,6 +256,15 @@ export function useDashboard(deps: DashboardDeps) {
         targetsConfig.value = normalizeTargetsConfig(json.targetsConfig ?? createDefaultTargetsConfig())
         const themeRaw = typeof json.themePreference === 'string' ? json.themePreference : ''
         themePreference.value = themeRaw === 'light' || themeRaw === 'dark' ? (themeRaw as 'light' | 'dark') : 'auto'
+        // Global user preferences (persisted server-side; falls back to defaults when absent).
+        if (json.preferredScope === 'calendar' || json.preferredScope === 'category') {
+          preferredScope.value = json.preferredScope
+        }
+        if (typeof json.globalAppBg === 'string' && /^#[0-9a-fA-F]{6}$/.test(json.globalAppBg)) {
+          globalAppBg.value = json.globalAppBg
+        } else if (json.globalAppBg === null) {
+          globalAppBg.value = null
+        }
 
         if (deps.isDebug?.()) {
           console.group('[opsdash] calendars/colors')

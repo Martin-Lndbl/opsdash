@@ -74,6 +74,12 @@ final class OverviewCorePayloadComposer {
         if (isset($context['activePreset']) && $context['activePreset'] !== '') {
             $payload['activePreset'] = $context['activePreset'];
         }
+        if (!empty($context['preferredScope'])) {
+            $payload['preferredScope'] = $context['preferredScope'];
+        }
+        if (!empty($context['globalAppBg'])) {
+            $payload['globalAppBg'] = $context['globalAppBg'];
+        }
         return $payload;
     }
 }

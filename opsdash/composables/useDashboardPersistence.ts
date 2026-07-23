@@ -5,6 +5,7 @@ import {
   normalizeTargetsConfig,
   type TargetsConfig,
 } from '../src/services/targets'
+import type { ScopePreference } from './useGlobalPreferences'
 import type { WidgetTabsState } from '../src/services/widgetsRegistry'
 import type { ThemePreference } from './useThemePreference'
 import {
@@ -34,6 +35,8 @@ interface DashboardPersistenceDeps {
   widgetTabs?: Ref<WidgetTabsState>
   onboardingState?: Ref<OnboardingState | null>
   activePreset?: Ref<string | null>
+  preferredScope?: Ref<ScopePreference>
+  globalAppBg?: Ref<string | null>
 }
 
 export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
@@ -77,6 +80,12 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
         }
         if (deps.activePreset !== undefined) {
           payload.active_preset = deps.activePreset.value ?? null
+        }
+        if (deps.preferredScope) {
+          payload.preferred_scope = deps.preferredScope.value
+        }
+        if (deps.globalAppBg) {
+          payload.global_app_bg = deps.globalAppBg.value ?? null
         }
         const result = await deps.postJson(deps.route('persist'), payload)
         if (requestId !== latestRequestId) {
@@ -126,6 +135,20 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
           const nextWidgets = result.widgets_read ?? result.widgets_saved ?? result.widgets
           const fallback = deps.widgetTabs.value || createDefaultWidgetTabs('standard')
           deps.widgetTabs.value = normalizeWidgetTabs(nextWidgets, fallback)
+        }
+        if (deps.preferredScope) {
+          const raw = result.preferred_scope_read ?? result.preferred_scope_saved
+          if (raw === 'calendar' || raw === 'category') {
+            deps.preferredScope.value = raw
+          }
+        }
+        if (deps.globalAppBg) {
+          const raw = result.global_app_bg_read ?? result.global_app_bg_saved
+          if (typeof raw === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw)) {
+            deps.globalAppBg.value = raw
+          } else if (raw === null) {
+            deps.globalAppBg.value = null
+          }
         }
         if (deps.onboardingState) {
           const nextOnboarding = result.onboarding_read ?? result.onboarding_saved

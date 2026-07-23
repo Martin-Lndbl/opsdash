@@ -568,7 +568,7 @@ import AddWidgetModal from './components/layout/AddWidgetModal.vue'
 import WidgetOptionsMenu from './components/layout/WidgetOptionsMenu.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
 import { normalizeReportingConfig, normalizeDeckSettings, type DeckFilterMode } from './services/reporting'
-import { globalAppBg } from '../composables/useGlobalPreferences'
+import { globalAppBg, preferredScope } from '../composables/useGlobalPreferences'
 import { ONBOARDING_VERSION, getStrategyDefinitions } from './services/onboarding'
 import {
   createDefaultWidgetTabs,
@@ -1138,9 +1138,19 @@ const { queueSave, isSaving: reportingSaving } = useDashboardPersistence({
   widgetTabs: widgetTabsRef,
   onboardingState,
   activePreset: activePresetRef,
+  preferredScope,
+  globalAppBg,
 })
 
 widgetsQueueSaveRef.value = queueSave
+
+// Persist global preferences (preferredScope, globalAppBg) whenever they
+// change. The initial load will set them from the server payload; a guard
+// prevents that initial write from bouncing back as a redundant save.
+watch([preferredScope, globalAppBg], () => {
+  if (!hasInitialLoad.value) return
+  queueSave(false)
+})
 
 // Goal strategies shape only a newly applied Standard template. They never
 // restrict the picker or rewrite a dashboard the user has already customized.

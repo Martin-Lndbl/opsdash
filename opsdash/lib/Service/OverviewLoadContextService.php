@@ -169,6 +169,10 @@ final class OverviewLoadContextService {
             ? $this->userConfigService->readThemePreference($appName, $uid)
             : 'auto';
         $activePreset = (string)$this->config->getUserValue($uid, $appName, 'active_preset', '');
+        $prefScopeRaw = (string)$this->config->getUserValue($uid, $appName, 'preferred_scope', '');
+        $preferredScope = ($prefScopeRaw === 'calendar' || $prefScopeRaw === 'category') ? $prefScopeRaw : null;
+        $bgRaw = (string)$this->config->getUserValue($uid, $appName, 'global_app_bg', '');
+        $globalAppBg = (is_string($bgRaw) && preg_match('/^#[0-9a-fA-F]{6}$/', $bgRaw) === 1) ? $bgRaw : null;
 
         $onboardingPayload = [];
         if ($includeOnboarding) {
@@ -235,6 +239,8 @@ final class OverviewLoadContextService {
             'widgetPresets' => $widgetPresets,
             'onboarding' => $onboardingPayload,
             'activePreset' => $activePreset,
+            'preferredScope' => $preferredScope,
+            'globalAppBg' => $globalAppBg,
         ];
 
         return [
