@@ -109,6 +109,7 @@
                 type="color"
                 :value="globalAppBg ?? defaultAppBg"
                 @input="onColorInput"
+                @change="onColorInput"
               />
             </label>
             <button
@@ -167,10 +168,6 @@
               :class="{ 'ge-catcard--open': openCategoryId === cat.id }"
             >
               <div class="ge-catcard__head">
-                <ColorPickerPopover
-                  :model-value="cat.color || '#2563EB'"
-                  @update:model-value="(c) => patchCategory(cat.id, { color: c || null })"
-                />
                 <input
                   class="ge-catlabel"
                   type="text"
@@ -193,6 +190,13 @@
                   />
                   <span class="ge-unit">h</span>
                 </div>
+                <ColorPickerPopover
+                  class="ge-color"
+                  :model-value="cat.color || '#2563EB'"
+                  @update:model-value="(c) => patchCategory(cat.id, { color: c || null })"
+                >
+                  <span class="ge-color__spacer" aria-hidden="true" />
+                </ColorPickerPopover>
                 <button
                   class="ge-catcard__toggle"
                   type="button"
@@ -957,18 +961,23 @@ const onCategoryLabelCommit = (id: string, v: string) => {
 }
 .ge-catcard__head {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto auto;
   align-items: center;
   gap: 6px;
   padding: 2px 4px;
 }
-.ge-catcard__head :deep(.color-picker-popover) {
-  flex-shrink: 0;
+.ge-color :deep(.cpp-trigger) {
+  padding: 3px;
+  gap: 0;
+  border-radius: 999px;
+  border-color: color-mix(in oklab, var(--fg, #0f172a) 14%, transparent);
 }
-.ge-catcard__head :deep(.cpp-swatch) {
-  width: 22px;
-  height: 22px;
+.ge-color :deep(.cpp-dot) {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
 }
+.ge-color__spacer { display: none; }
 .ge-catlabel {
   min-width: 0;
   width: 100%;
