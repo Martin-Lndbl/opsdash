@@ -118,6 +118,64 @@
         </div>
       </div>
 
+      <!-- ── Goals editor (collapsible) ── -->
+      <div v-if="targets" class="ge" :class="{ 'ge--collapsed': !goalsExpanded }">
+        <button
+          class="sc-hd sc-toggle"
+          type="button"
+          :aria-expanded="goalsExpanded"
+          @click="goalsExpanded = !goalsExpanded"
+        >
+          <div>
+            <div class="ew">Weekly goals</div>
+            <div class="sc-title">
+              <span>Goals</span>
+              <span class="sc-progress">{{ formatHours(targets.totalHours ?? 0) }} h/wk</span>
+            </div>
+          </div>
+          <span class="sc-caret" :class="{ 'sc-caret--open': goalsExpanded }" aria-hidden="true">
+            <svg viewBox="0 0 12 7" width="12" height="7" fill="none">
+              <path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+        <div v-if="goalsExpanded" class="sc-body">
+          <label class="ge-row">
+            <span class="ge-label">Total</span>
+            <div class="ge-input">
+              <input
+                type="number"
+                min="0"
+                max="1000"
+                step="0.5"
+                :value="targets.totalHours ?? 0"
+                @input="onTotalInput"
+              />
+              <span class="ge-unit">h/wk</span>
+            </div>
+          </label>
+          <div v-for="cat in targets.categories || []" :key="cat.id" class="ge-cat">
+            <span
+              class="ge-dot"
+              :style="{ background: cat.color || 'var(--brand, #2563eb)' }"
+              aria-hidden="true"
+            />
+            <span class="ge-cat-label" :title="cat.label">{{ cat.label }}</span>
+            <div class="ge-input">
+              <input
+                type="number"
+                min="0"
+                max="1000"
+                step="0.5"
+                :value="cat.targetHours ?? 0"
+                @input="(e) => onCategoryInput(cat.id, e)"
+              />
+              <span class="ge-unit">h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── Setup card (collapsible) ── -->
       <div class="sc" :class="{ 'sc--collapsed': !setupExpanded }">
         <button
@@ -212,6 +270,7 @@ import { computed, ref, watch } from 'vue'
 import { NcAppNavigation } from '@nextcloud/vue'
 import { getWeekNumber, parseDateKey } from '../../services/dateTime'
 import { preferredScope, globalAppBg } from '../../../composables/useGlobalPreferences'
+import type { TargetsConfig } from '../../services/targets'
 
 const MDI_LAYERS = "M12,16L19.36,10.27L21,9L12,2L3,9L4.63,10.27M12,18.54L4.62,12.81L3,14.07L12,21.07L21,14.07L19.37,12.8L12,18.54Z"
 const MDI_CALENDAR_MULTIPLE = "M21,17V8H7V17H21M21,3A2,2 0 0,1 23,5V17A2,2 0 0,1 21,19H7C5.89,19 5,18.1 5,17V5A2,2 0 0,1 7,3H8V1H10V3H18V1H20V3H21M3,21H17V23H3C1.89,23 1,22.1 1,21V9H3V21M19,15H15V11H19V15Z"
@@ -246,6 +305,7 @@ const props = defineProps<{
   lastSync?: string | null
   guidedHintStatuses?: Partial<Record<'strategy' | 'calendars' | 'deck' | 'goals' | 'preferences' | 'dashboard' | 'review', 'done' | 'warn' | 'dim' | 'skip'>>
   themePreference?: 'auto' | 'light' | 'dark'
+  targets?: TargetsConfig | null
 }>()
 
 const emit = defineEmits([
@@ -258,6 +318,8 @@ const emit = defineEmits([
   'open-shortcuts',
   'rerun-onboarding',
   'update:theme-preference',
+  'update-total-hours',
+  'update-category-target',
 ])
 
 const rangeEyebrow = computed(() => props.range === 'month' ? 'This month' : 'This week')
@@ -302,6 +364,26 @@ function onColorInput(event: Event) {
   if (typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)) {
     globalAppBg.value = value
   }
+}
+
+// Goals editor — collapsed by default. The parent handles the actual
+// mutation + persistence via useDashboardSelection.updateTargetsConfig.
+const goalsExpanded = ref(false)
+function formatHours(value: number): string {
+  const n = Number(value) || 0
+  return (Math.round(n * 10) / 10).toString()
+}
+function onTotalInput(event: Event) {
+  const raw = Number((event.target as HTMLInputElement).value)
+  if (!Number.isFinite(raw)) return
+  const clamped = Math.max(0, Math.min(1000, raw))
+  emit('update-total-hours', clamped)
+}
+function onCategoryInput(id: string, event: Event) {
+  const raw = Number((event.target as HTMLInputElement).value)
+  if (!Number.isFinite(raw)) return
+  const clamped = Math.max(0, Math.min(1000, raw))
+  emit('update-category-target', { id, value: clamped })
 }
 </script>
 
@@ -605,6 +687,92 @@ function onColorInput(event: Event) {
 }
 .qs-clear:disabled { opacity: .4; cursor: default; }
 .qs-clear:hover:not(:disabled) { background: color-mix(in oklab, var(--fg, #0f172a) 5%, transparent); color: var(--fg, #0f172a); }
+
+/* ── Goals editor ── */
+.ge {
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 18px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--card, #fff);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, .05);
+}
+.ge-row {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.ge-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted, #64748b);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.ge-cat {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  min-width: 0;
+}
+.ge-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, .15);
+}
+.ge-cat-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg, #0f172a);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ge-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+  padding: 2px 8px;
+  background: var(--card, #fff);
+  min-width: 0;
+}
+.ge-input input[type="number"] {
+  width: 56px;
+  border: 0;
+  background: transparent;
+  color: var(--fg, #0f172a);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  padding: 4px 0;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.ge-input input[type="number"]::-webkit-outer-spin-button,
+.ge-input input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.ge-input input[type="number"]:focus {
+  outline: none;
+}
+.ge-unit {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted, #64748b);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
 
 /* ── Setup card ── */
 .sc {

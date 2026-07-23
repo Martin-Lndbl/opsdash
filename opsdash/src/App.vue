@@ -79,6 +79,7 @@
           :release-notes-available="releaseNotesAvailable"
           :release-notes-open="releaseNotesOverlayOpen"
           :theme-preference="themePreference"
+          :targets="targetsConfig"
           @load="performLoad"
           @update:range="(v)=>{ range=v as any; offset=0; performLoad() }"
           @update:offset="(v)=>{ offset=v as number; performLoad() }"
@@ -88,6 +89,8 @@
           @open-release-notes="openCurrentReleaseNotes"
           @open-shortcuts="(el) => openShortcuts(el)"
           @update:theme-preference="(v) => setThemePreference(v)"
+          @update-total-hours="(v) => updateTargetsConfig({ ...targetsConfig, totalHours: Number(v) })"
+          @update-category-target="({ id, value }) => updateTargetsConfig({ ...targetsConfig, categories: (targetsConfig.categories || []).map((c) => c.id === id ? { ...c, targetHours: Number(value) } : c) })"
         />
       </template>
 
