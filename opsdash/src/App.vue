@@ -1,5 +1,5 @@
 <template>
-  <div id="opsdash" class="opsdash" :class="[{ 'is-nav-collapsed': !navOpen }, opsdashThemeClass]">
+  <div id="opsdash" class="opsdash" :class="[{ 'is-nav-collapsed': !navOpen }, opsdashThemeClass]" :style="opsdashRootStyle">
     <OnboardingWizard
       :key="onboardingRunId"
       :visible="onboardingWizardVisible"
@@ -388,10 +388,10 @@
 
                     <div class="vsep" />
 
-                    <!-- Color group -->
+                    <!-- Color group — controls the GLOBAL app / widget background -->
                     <div class="ic-group" :class="{ open: inlineGroupOpen === 'color' }">
-                      <button class="ic ic-group__trigger" type="button" :class="{ on: inlineGroupOpen === 'color' }" :disabled="!inlineSelectedItem" title="Card background color" @click="toggleInlineGroup('color')">
-                        <span class="ic-color-dot" :class="{ 'ic-color-dot--none': !selectedCardBg }" :style="selectedCardBg ? { background: selectedCardBg } : {}" />
+                      <button class="ic ic-group__trigger" type="button" :class="{ on: inlineGroupOpen === 'color' }" title="App background color (applies to every widget by default)" @click="toggleInlineGroup('color')">
+                        <span class="ic-color-dot" :class="{ 'ic-color-dot--none': !globalAppBg }" :style="globalAppBg ? { background: globalAppBg } : {}" />
                         <span class="ic-lbl">Color</span>
                       </button>
                       <div v-if="inlineGroupOpen === 'color'" class="ic-group__rail ic-group__rail--color">
@@ -399,9 +399,9 @@
                         <button
                           type="button"
                           class="ic-color-swatch ic-color-reset"
-                          :class="{ on: !selectedCardBg }"
-                          title="Default background"
-                          @click.stop="() => { setSelectedOption('cardBg', null); inlineGroupOpen = null }"
+                          :class="{ on: !globalAppBg }"
+                          title="Follow theme"
+                          @click.stop="() => { globalAppBg = null; inlineGroupOpen = null }"
                         />
                         <!-- Palette -->
                         <button
@@ -409,17 +409,17 @@
                           :key="color"
                           type="button"
                           class="ic-color-swatch"
-                          :class="{ on: selectedCardBg?.toUpperCase() === color.toUpperCase() }"
+                          :class="{ on: globalAppBg?.toUpperCase() === color.toUpperCase() }"
                           :style="{ background: color }"
                           :title="color"
-                          @click.stop="() => { setSelectedOption('cardBg', color); inlineGroupOpen = null }"
+                          @click.stop="() => { globalAppBg = color; inlineGroupOpen = null }"
                         />
                         <!-- Custom -->
                         <label class="ic-color-custom" title="Custom color">
                           <input
                             type="color"
-                            :value="selectedCardBg ?? '#ffffff'"
-                            @change.stop="(e) => { setSelectedOption('cardBg', (e.target as HTMLInputElement).value); inlineGroupOpen = null }"
+                            :value="globalAppBg ?? '#ffffff'"
+                            @change.stop="(e) => { globalAppBg = (e.target as HTMLInputElement).value; inlineGroupOpen = null }"
                           />
                         </label>
                       </div>
@@ -568,6 +568,7 @@ import AddWidgetModal from './components/layout/AddWidgetModal.vue'
 import WidgetOptionsMenu from './components/layout/WidgetOptionsMenu.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
 import { normalizeReportingConfig, normalizeDeckSettings, type DeckFilterMode } from './services/reporting'
+import { globalAppBg } from '../composables/useGlobalPreferences'
 import { ONBOARDING_VERSION, getStrategyDefinitions } from './services/onboarding'
 import {
   createDefaultWidgetTabs,
@@ -1091,6 +1092,13 @@ const {
 const opsdashThemeClass = computed(() =>
   effectiveTheme.value === 'dark' ? 'opsdash-theme-dark' : 'opsdash-theme-light',
 )
+const opsdashRootStyle = computed(() => {
+  const bg = globalAppBg.value
+  if (!bg) return {}
+  // Cascade the chosen color into every widget via CSS custom properties
+  // (both --bg for the page area and --card for widget surfaces).
+  return { '--bg': bg, '--card': bg } as Record<string, string>
+})
 
 function openOnboardingFromLayout(step?: string) {
   openWizardFromSidebar((step as any) || 'goals')

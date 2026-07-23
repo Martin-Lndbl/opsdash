@@ -198,7 +198,11 @@ const settingsActivity = computed<ActivityCardConfig>(() =>
   Object.assign({}, defaultActivityConfig, props.activityConfig ?? {}),
 )
 const titleText = computed(() => props.title || 'Activity & Balance')
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const showHeader = computed(() => props.showHeader !== false)
 const balanceIndex = computed(() => {
   const raw = props.overview?.index

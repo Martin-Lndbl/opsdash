@@ -197,7 +197,11 @@ const limitedMessages = computed(() => {
   if (!Number.isFinite(limit) || limit <= 0) return list
   return list.slice(0, limit)
 })
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const configSummary = computed(() => {
   const defaults = createDefaultBalanceConfig()
   const t = {

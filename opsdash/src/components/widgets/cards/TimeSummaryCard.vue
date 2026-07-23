@@ -455,7 +455,12 @@ const headerText = computed(() => {
   const range = props.summary?.rangeLabel || ''
   return props.showRangeInTitle !== false && range ? `${base} · ${range}` : base
 })
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+// Cascade the widget's chosen bg to inner panels that use var(--card).
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const showHeader = computed(() => props.showHeader)
 const showToday = computed(() => props.showToday)
 const showActivity = computed(() => props.showActivity)

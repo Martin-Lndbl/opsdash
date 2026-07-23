@@ -48,7 +48,11 @@ const props = defineProps<{
 
 const showHeader = computed(() => props.showHeader !== false)
 const titleText = computed(() => props.title || 'Stacked bars')
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const colorsById = computed(() => props.colorsById || {})
 const hoveredId = ref<string | null>(null)
 

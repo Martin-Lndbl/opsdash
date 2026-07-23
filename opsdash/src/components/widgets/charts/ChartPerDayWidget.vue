@@ -39,7 +39,11 @@ const props = defineProps<{
 
 const showHeader = computed(() => props.showHeader !== false)
 const titleText = computed(() => props.title || 'Per-day totals')
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const legendItems = computed(() => props.legendItems || [])
 const xLabel = computed(() => props.xLabel || '')
 const yLabel = computed(() => props.yLabel || '')

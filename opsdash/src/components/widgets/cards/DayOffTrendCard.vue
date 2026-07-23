@@ -142,7 +142,11 @@ const tiles = computed<DayOffTrendTile[]>(() => {
 })
 
 const titleText = computed(() => props.title || 'Days off trend')
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const showHeader = computed(() => props.showHeader !== false)
 const heatmapEl = ref<HTMLElement | null>(null)
 const heatmapWidth = ref(0)

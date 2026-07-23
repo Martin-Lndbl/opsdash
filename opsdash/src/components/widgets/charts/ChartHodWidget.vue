@@ -38,7 +38,11 @@ const props = defineProps<{
 
 const showHeader = computed(() => props.showHeader !== false)
 const titleText = computed(() => props.title || 'Hours of day')
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const lookbackEntries = computed(() => props.lookbackEntries || [])
 const showLegend = computed(() => props.showLegend !== false)
 const lookbackMode = computed(() => props.lookbackMode || 'stacked')

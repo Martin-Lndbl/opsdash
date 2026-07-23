@@ -53,7 +53,11 @@ const props = defineProps<{
 
 const showHeader = computed(() => props.showHeader !== false)
 const titleText = computed(() => props.title || 'Pie chart')
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const colorsById = computed(() => props.colorsById || {})
 const colorsByName = computed(() => props.colorsByName || {})
 const hoveredId = ref<string | null>(null)
