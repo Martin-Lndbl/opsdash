@@ -11,6 +11,7 @@
       :colors-by-name="colorsByName"
       :show-labels="showLabels"
       :color-style="colorStyle"
+      :color-tint="colorTint"
       :highlight-id="hoveredId"
     />
     <div v-else class="chart-widget__empty">No data</div>
@@ -48,6 +49,7 @@ const props = defineProps<{
   showLegend?: boolean
   showLabels?: boolean
   colorStyle?: 'fill' | 'outline'
+  colorTint?: number
   chartData?: PieData | null
   colorsById?: Record<string, string>
   colorsByName?: Record<string, string>

@@ -14,6 +14,7 @@ const props = defineProps<{
   showLabels?: boolean
   highlightId?: string | null
   colorStyle?: 'fill' | 'outline'
+  colorTint?: number
 }>()
 const cv = ref<HTMLCanvasElement|null>(null)
 let ro: ResizeObserver | null = null
@@ -66,7 +67,7 @@ function draw(){
     const isDim = hasHighlight && !isMatch
     ctx.save()
     if (isDim) ctx.globalAlpha = 0.25
-    paintPolishedSlice(ctx, cx, cy, r, ang, a2, chosen, props.colorStyle ?? 'fill')
+    paintPolishedSlice(ctx, cx, cy, r, ang, a2, chosen, props.colorStyle ?? 'fill', (props.colorTint ?? 0) / 100)
     if (isMatch) {
       ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,ang,a2);ctx.closePath();
       ctx.lineWidth = 2

@@ -105,6 +105,7 @@ final class PersistWidgetsSanitizer {
                 'filterMode'   => $FILTER_MODE,
                 'filterIds'    => $ID_LIST,
                 'colorStyle'   => ['t' => 'select', 'v' => ['fill', 'outline']],
+                'colorTint'    => ['t' => 'number', 'min' => 0.0, 'max' => 100.0],
             ],
             'chart_hod' => $CORE + [
                 'showLegend'   => $BOOL,
@@ -123,6 +124,7 @@ final class PersistWidgetsSanitizer {
                 'filterMode'   => $FILTER_MODE,
                 'filterIds'    => $ID_LIST,
                 'colorStyle'   => ['t' => 'select', 'v' => ['fill', 'outline']],
+                'colorTint'    => ['t' => 'number', 'min' => 0.0, 'max' => 100.0],
             ],
             'chart_pie' => $CORE + [
                 'showLegend' => $BOOL,
@@ -131,6 +133,7 @@ final class PersistWidgetsSanitizer {
                 'filterMode' => $FILTER_MODE,
                 'filterIds'  => $ID_LIST,
                 'colorStyle' => ['t' => 'select', 'v' => ['fill', 'outline']],
+                'colorTint'  => ['t' => 'number', 'min' => 0.0, 'max' => 100.0],
             ],
             'chart_stacked' => $CORE + [
                 'showLegend'   => $BOOL,
@@ -140,6 +143,7 @@ final class PersistWidgetsSanitizer {
                 'filterMode'   => $FILTER_MODE,
                 'filterIds'    => $ID_LIST,
                 'colorStyle'   => ['t' => 'select', 'v' => ['fill', 'outline']],
+                'colorTint'    => ['t' => 'number', 'min' => 0.0, 'max' => 100.0],
             ],
             'dayoff_trend' => $CORE + [
                 'reverseOrder'    => $BOOL,

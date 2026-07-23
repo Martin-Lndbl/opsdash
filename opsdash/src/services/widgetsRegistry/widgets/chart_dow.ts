@@ -34,6 +34,7 @@ export const chartDowEntry: RegistryEntry = {
     reverseOrder: false,
     forecastMode: 'total',
       colorStyle: 'fill',
+    colorTint: 0,
   },
   dynamicControls: (options, ctx) => {
     return [
@@ -47,6 +48,12 @@ export const chartDowEntry: RegistryEntry = {
       { key: 'colorStyle', label: 'Color style', type: 'select', options: [
         { value: 'fill', label: 'Fill' },
         { value: 'outline', label: 'Border only' },
+      ] },
+      { key: 'colorTint', label: 'Border-mode color tint', type: 'select', options: [
+        { value: 0, label: 'Off' },
+        { value: 30, label: 'Subtle' },
+        { value: 60, label: 'Medium' },
+        { value: 100, label: 'Strong' },
       ] },
       { key: 'showLabels', label: 'Show labels', type: 'toggle' },
       { key: 'compact', label: 'Compact', type: 'toggle' },
@@ -127,6 +134,7 @@ export const chartDowEntry: RegistryEntry = {
       showHeader: def.options?.showHeader !== false,
       showLabels: def.options?.showLabels !== false,
       colorStyle: def.options?.colorStyle === 'outline' ? 'outline' : 'fill',
+      colorTint: Number.isFinite(Number(def.options?.colorTint)) ? Math.max(0, Math.min(100, Number(def.options?.colorTint))) : 0,
       compact: def.options?.compact === true,
       xLabel: 'Weekday',
       yLabel: 'Hours (h)',

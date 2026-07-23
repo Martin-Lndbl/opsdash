@@ -9,6 +9,7 @@
       :data="chartData"
       :show-labels="showLabels"
       :color-style="colorStyle"
+      :color-tint="colorTint"
       :x-label="xLabel"
       :y-label="yLabel"
     />
@@ -33,6 +34,7 @@ const props = defineProps<{
   showHeader?: boolean
   showLabels?: boolean
   colorStyle?: 'fill' | 'outline'
+  colorTint?: number
   xLabel?: string
   yLabel?: string
   chartData?: { labels?: string[]; data?: number[]; colors?: string[] } | null

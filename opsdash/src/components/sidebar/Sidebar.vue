@@ -414,7 +414,7 @@ function onColorInput(event: Event) {
   gap: 3px;
   padding: 3px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, .06);
+  background: color-mix(in oklab, var(--fg, #0f172a) 6%, transparent);
 }
 .seg.w2 { grid-template-columns: 1fr 1fr; }
 .seg.w3 { grid-template-columns: 1fr 1fr 1fr; }
@@ -588,7 +588,7 @@ function onColorInput(event: Event) {
 }
 .qs-swatch-dot--none {
   background:
-    linear-gradient(45deg, transparent 45%, var(--muted, #94a3b8) 45%, var(--muted, #94a3b8) 55%, transparent 55%),
+    linear-gradient(45deg, transparent 45%, var(--line, #e5e7eb) 45%, var(--line, #e5e7eb) 55%, transparent 55%),
     var(--card, #fff);
 }
 .qs-clear {
@@ -604,7 +604,7 @@ function onColorInput(event: Event) {
   appearance: none;
 }
 .qs-clear:disabled { opacity: .4; cursor: default; }
-.qs-clear:hover:not(:disabled) { background: rgba(0, 0, 0, .04); color: var(--fg, #0f172a); }
+.qs-clear:hover:not(:disabled) { background: color-mix(in oklab, var(--fg, #0f172a) 5%, transparent); color: var(--fg, #0f172a); }
 
 /* ── Setup card ── */
 .sc {
@@ -632,7 +632,7 @@ function onColorInput(event: Event) {
   color: inherit;
   font: inherit;
 }
-.sc-toggle:hover { background: rgba(0, 0, 0, .03); }
+.sc-toggle:hover { background: color-mix(in oklab, var(--fg, #0f172a) 4%, transparent); }
 
 .sc-title {
   font-size: 15px;

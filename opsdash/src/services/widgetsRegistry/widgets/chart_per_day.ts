@@ -33,6 +33,7 @@ export const chartPerDayEntry: RegistryEntry = {
     reverseOrder: false,
     forecastMode: 'total',
       colorStyle: 'fill',
+    colorTint: 0,
   },
   dynamicControls: (options, ctx) => {
     return [
@@ -117,6 +118,7 @@ export const chartPerDayEntry: RegistryEntry = {
       showHeader: def.options?.showHeader !== false,
       showLabels: def.options?.showLabels === true,
       colorStyle: def.options?.colorStyle === 'outline' ? 'outline' : 'fill',
+      colorTint: Number.isFinite(Number(def.options?.colorTint)) ? Math.max(0, Math.min(100, Number(def.options?.colorTint))) : 0,
       compact: def.options?.compact === true,
       xLabel: 'Date',
       yLabel: 'Hours (h)',

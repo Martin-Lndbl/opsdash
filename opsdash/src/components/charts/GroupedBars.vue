@@ -15,6 +15,7 @@ const props = defineProps<{
   xLabel?: string
   yLabel?: string
   colorStyle?: 'fill' | 'outline'
+  colorTint?: number
 }>()
 
 const cv = ref<HTMLCanvasElement | null>(null)
@@ -88,7 +89,7 @@ function draw() {
       const h = Math.max(0, val * chartScale)
       const x = groupX + seriesIdx * (barWidth + innerGap)
       const y = y0 - h
-      paintPolishedBar(ctx, x, y, barWidth, h, row?.color || '#93c5fd', props.colorStyle ?? 'fill')
+      paintPolishedBar(ctx, x, y, barWidth, h, row?.color || '#93c5fd', props.colorStyle ?? 'fill', 'bar', (props.colorTint ?? 0) / 100)
       const seriesLabel = String(row?.name ?? row?.label ?? row?.id ?? '')
       const tooltipLabel = seriesLabel ? `${label} · ${seriesLabel}` : label
       geometry.push({ x, y, w: barWidth, h, label: tooltipLabel, value: val })

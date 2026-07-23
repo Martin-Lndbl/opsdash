@@ -6,10 +6,13 @@ type PieData = { ids: string[]; labels: string[]; data: number[]; colors?: strin
 type StackedData = { labels: string[]; series: Array<{ id: string; name?: string; label?: string; color?: string; data?: number[]; forecast?: number[] }> }
 type ChartFilterMode = 'category' | 'calendar'
 
-const LOOKBACK_PALETTE = ['#9aa6b2', '#8895a3', '#778697', '#68788a', '#596b7e', '#4d6074']
+// Bright, distinguishable hues for lookback comparison bars. The
+// previous palette was a row of grey-blues that read as a single dark
+// grey slab on light themes.
+const LOOKBACK_PALETTE = ['#2563eb', '#f59e0b', '#10b981', '#a855f7', '#ef4444', '#14b8a6']
 
 export function getLookbackColor(index: number): string {
-  return LOOKBACK_PALETTE[index % LOOKBACK_PALETTE.length] || '#6f8193'
+  return LOOKBACK_PALETTE[index % LOOKBACK_PALETTE.length] || '#2563eb'
 }
 
 export function sortLookbackOffsets<T extends { offset?: number }>(input: T[]): T[] {
