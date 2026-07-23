@@ -117,32 +117,45 @@ export function aggregateStackedByCategory(
 ): StackedData | null {
   if (!stacked || !Array.isArray(stacked.series)) return null
   const labels = stacked.labels || []
-  const map = new Map<string, number[]>()
+  const dataMap = new Map<string, number[]>()
+  const forecastMap = new Map<string, number[]>()
+  let anyForecast = false
   stacked.series.forEach((row) => {
     const calId = String(row?.id ?? '')
     const catId = String(calendarCategoryMap?.[calId] ?? '')
     if (!catId) return
     if (categoryFilter.size && !categoryFilter.has(catId)) return
-    if (!map.has(catId)) {
-      map.set(catId, Array.from({ length: labels.length }, () => 0))
+    if (!dataMap.has(catId)) {
+      dataMap.set(catId, Array.from({ length: labels.length }, () => 0))
+      forecastMap.set(catId, Array.from({ length: labels.length }, () => 0))
     }
-    const target = map.get(catId)
+    const dataTarget = dataMap.get(catId)
+    const forecastTarget = forecastMap.get(catId)
     const data = Array.isArray(row?.data) ? row.data : []
-    if (!target) return
+    const forecast = Array.isArray((row as any)?.forecast) ? (row as any).forecast as number[] : null
+    if (forecast) anyForecast = true
     labels.forEach((_, idx) => {
-      target[idx] += Math.max(0, Number(data[idx] ?? 0))
+      if (dataTarget) dataTarget[idx] += Math.max(0, Number(data[idx] ?? 0))
+      if (forecastTarget && forecast) forecastTarget[idx] += Math.max(0, Number(forecast[idx] ?? 0))
     })
   })
-  if (!map.size) return null
-  const series = Array.from(map.entries()).map(([catId, data]) => {
+  if (!dataMap.size) return null
+  const series = Array.from(dataMap.entries()).map(([catId, data]) => {
     const displayName = categoryLabelMap?.[catId] || catId
-    return {
+    const entry: StackedData['series'][number] = {
       id: catId,
       name: displayName,
       label: displayName,
       color: categoryColorMap?.[catId],
       data,
     }
+    if (anyForecast) {
+      const fc = forecastMap.get(catId)
+      if (fc && fc.some((v) => v > 0)) {
+        (entry as any).forecast = fc
+      }
+    }
+    return entry
   })
   return { labels, series }
 }
