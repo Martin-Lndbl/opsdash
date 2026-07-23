@@ -28,6 +28,7 @@ export const chartStackedEntry: RegistryEntry = {
     showLabels: false,
     compact: false,
     forecastMode: 'total',
+      colorStyle: 'fill',
   },
   dynamicControls: (options, ctx) => {
     return [
@@ -37,6 +38,10 @@ export const chartStackedEntry: RegistryEntry = {
         { value: 'total', label: 'Distribute remaining total target' },
         { value: 'calendar', label: 'Respect calendar targets' },
         { value: 'category', label: 'Respect category targets' },
+      ] },
+      { key: 'colorStyle', label: 'Color style', type: 'select', options: [
+        { value: 'fill', label: 'Fill' },
+        { value: 'outline', label: 'Border only' },
       ] },
       { key: 'showLegend', label: 'Show legend', type: 'toggle' },
       { key: 'showLabels', label: 'Show labels', type: 'toggle' },
@@ -65,6 +70,7 @@ export const chartStackedEntry: RegistryEntry = {
       compact: def.options?.compact === true,
       showLegend: def.options?.showLegend !== false,
       showLabels: def.options?.showLabels === true,
+      colorStyle: def.options?.colorStyle === 'outline' ? 'outline' : 'fill',
       stacked,
       colorsById: ctx.colorsById || {},
     }

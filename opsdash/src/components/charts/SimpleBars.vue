@@ -11,6 +11,7 @@ const props = defineProps<{
   showLabels?: boolean
   xLabel?: string
   yLabel?: string
+  colorStyle?: 'fill' | 'outline'
 }>()
 
 const cv = ref<HTMLCanvasElement | null>(null)
@@ -74,7 +75,7 @@ function draw() {
     const h = Math.max(0, val * chartScale)
     const x = x0 + gap + i * (bw + gap)
     const y = y0 - h
-    paintPolishedBar(ctx, x, y, bw, h, colors[i] || '#93c5fd')
+    paintPolishedBar(ctx, x, y, bw, h, colors[i] || '#93c5fd', props.colorStyle ?? 'fill')
     geometry.push({ x, y, w: bw, h, label, value: val })
     ctx.fillStyle = fg
     ctx.font = `${12 * textScale}px ui-sans-serif,system-ui`

@@ -81,11 +81,11 @@ function neutralCardFill(ctx: CanvasRenderingContext2D): string {
   return `rgb(${mix(cardRgb.r, fgRgb.r)}, ${mix(cardRgb.g, fgRgb.g)}, ${mix(cardRgb.b, fgRgb.b)})`
 }
 
-// Paint a bar in the same "outline" language TimeSummary uses for its
-// calendar/category lanes: neutral card-ish fill, item color only as
-// the outer stroke + a 2px inset left accent. Every bar in a chart
-// therefore shares the same fill; the color reads through the border.
-export function paintPolishedBar(
+export type ChartColorStyle = 'fill' | 'outline'
+
+// Filled bar: base color at bottom, ~18% lighter at top. TimeSummary
+// week-bar look.
+function paintFilledBar(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -93,16 +93,31 @@ export function paintPolishedBar(
   h: number,
   color: string,
 ): void {
-  if (w <= 0 || h <= 0) {
-    return
-  }
+  const rgb = parseColorString(color) ?? { r: 147, g: 197, b: 253 }
+  const light = mixToward(rgb, 255, 0.18)
+  const base = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
+  const grad = ctx.createLinearGradient(0, y, 0, y + h)
+  grad.addColorStop(0, light)
+  grad.addColorStop(1, base)
+  ctx.fillStyle = grad
+  ctx.fillRect(x, y, w, h)
+}
+
+// Outlined bar: neutral card-ish fill, item color only as a 2px inset
+// left accent + 1px outer stroke. Same vocabulary as TimeSummary lanes.
+function paintOutlinedBar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: string,
+): void {
   ctx.fillStyle = neutralCardFill(ctx)
   ctx.fillRect(x, y, w, h)
-  // Left accent (2px wide) in the item color.
   const accentW = Math.min(2, w)
   ctx.fillStyle = color
   ctx.fillRect(x, y, accentW, h)
-  // 1px outline in the item color, drawn at half-pixel offsets.
   if (w >= 2 && h >= 2) {
     ctx.strokeStyle = color
     ctx.lineWidth = 1
@@ -110,9 +125,22 @@ export function paintPolishedBar(
   }
 }
 
-// Same treatment for pie slices: neutral fill, item color as the outer
-// stroke.
-export function paintPolishedSlice(
+// Router. Each chart widget picks its style; default is filled.
+export function paintPolishedBar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: string,
+  style: ChartColorStyle = 'fill',
+): void {
+  if (w <= 0 || h <= 0) return
+  if (style === 'outline') paintOutlinedBar(ctx, x, y, w, h, color)
+  else paintFilledBar(ctx, x, y, w, h, color)
+}
+
+function paintFilledSlice(
   ctx: CanvasRenderingContext2D,
   cx: number,
   cy: number,
@@ -121,7 +149,30 @@ export function paintPolishedSlice(
   endAngle: number,
   color: string,
 ): void {
-  if (r <= 0) return
+  const rgb = parseColorString(color) ?? { r: 147, g: 197, b: 253 }
+  const light = mixToward(rgb, 255, 0.22)
+  const base = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
+  grad.addColorStop(0, light)
+  grad.addColorStop(0.65, base)
+  grad.addColorStop(1, base)
+  ctx.fillStyle = grad
+  ctx.beginPath()
+  ctx.moveTo(cx, cy)
+  ctx.arc(cx, cy, r, startAngle, endAngle)
+  ctx.closePath()
+  ctx.fill()
+}
+
+function paintOutlinedSlice(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  r: number,
+  startAngle: number,
+  endAngle: number,
+  color: string,
+): void {
   ctx.fillStyle = neutralCardFill(ctx)
   ctx.beginPath()
   ctx.moveTo(cx, cy)
@@ -131,6 +182,21 @@ export function paintPolishedSlice(
   ctx.strokeStyle = color
   ctx.lineWidth = 1.5
   ctx.stroke()
+}
+
+export function paintPolishedSlice(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  r: number,
+  startAngle: number,
+  endAngle: number,
+  color: string,
+  style: ChartColorStyle = 'fill',
+): void {
+  if (r <= 0) return
+  if (style === 'outline') paintOutlinedSlice(ctx, cx, cy, r, startAngle, endAngle, color)
+  else paintFilledSlice(ctx, cx, cy, r, startAngle, endAngle, color)
 }
 
 // Small floating tooltip painted onto a chart canvas near the cursor.

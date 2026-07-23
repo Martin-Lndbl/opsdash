@@ -20,10 +20,15 @@ export const chartPieEntry: RegistryEntry = {
     showLegend: true,
     showLabels: true,
     compact: false,
+      colorStyle: 'fill',
   },
   dynamicControls: (options, ctx) => {
     return [
       ...buildChartFilterControls(options, ctx),
+      { key: 'colorStyle', label: 'Color style', type: 'select', options: [
+        { value: 'fill', label: 'Fill' },
+        { value: 'outline', label: 'Border only' },
+      ] },
       { key: 'showLegend', label: 'Show legend', type: 'toggle' },
       { key: 'showLabels', label: 'Show labels', type: 'toggle' },
       { key: 'compact', label: 'Compact', type: 'toggle' },
@@ -46,6 +51,7 @@ export const chartPieEntry: RegistryEntry = {
       compact: def.options?.compact === true,
       showLegend: def.options?.showLegend !== false,
       showLabels: def.options?.showLabels !== false,
+      colorStyle: def.options?.colorStyle === 'outline' ? 'outline' : 'fill',
       chartData: data,
       colorsById,
       colorsByName,

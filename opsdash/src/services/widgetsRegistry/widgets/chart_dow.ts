@@ -33,6 +33,7 @@ export const chartDowEntry: RegistryEntry = {
     compact: false,
     reverseOrder: false,
     forecastMode: 'total',
+      colorStyle: 'fill',
   },
   dynamicControls: (options, ctx) => {
     return [
@@ -42,6 +43,10 @@ export const chartDowEntry: RegistryEntry = {
         { value: 'total', label: 'Distribute remaining total target' },
         { value: 'calendar', label: 'Respect calendar targets' },
         { value: 'category', label: 'Respect category targets' },
+      ] },
+      { key: 'colorStyle', label: 'Color style', type: 'select', options: [
+        { value: 'fill', label: 'Fill' },
+        { value: 'outline', label: 'Border only' },
       ] },
       { key: 'showLabels', label: 'Show labels', type: 'toggle' },
       { key: 'compact', label: 'Compact', type: 'toggle' },
@@ -121,6 +126,7 @@ export const chartDowEntry: RegistryEntry = {
       cardBg: def.options?.cardBg,
       showHeader: def.options?.showHeader !== false,
       showLabels: def.options?.showLabels !== false,
+      colorStyle: def.options?.colorStyle === 'outline' ? 'outline' : 'fill',
       compact: def.options?.compact === true,
       xLabel: 'Weekday',
       yLabel: 'Hours (h)',

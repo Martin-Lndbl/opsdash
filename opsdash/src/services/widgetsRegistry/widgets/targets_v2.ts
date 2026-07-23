@@ -35,6 +35,7 @@ export const targetsV2Entry: RegistryEntry = {
     includeZeroDaysInStats: false,
     useLocalConfig: false,
     localConfig: null,
+    colorStyle: 'fill',
   },
   resolveOptions: (options, ctx) => {
     const useLocal = options?.useLocalConfig === true
@@ -68,6 +69,10 @@ export const targetsV2Entry: RegistryEntry = {
     { key: 'badges', label: 'Status badges', type: 'toggle' },
     { key: 'includeWeekendToggle', label: 'Weekend toggle', type: 'toggle' },
     { key: 'includeZeroDaysInStats', label: 'Include zero days in pace', type: 'toggle' },
+    { key: 'colorStyle', label: 'Color style', type: 'select', options: [
+      { value: 'fill', label: 'Fill' },
+      { value: 'outline', label: 'Border only' },
+    ] },
     // footer removed
   ],
   buildProps: (def, ctx) => {
@@ -148,6 +153,7 @@ export const targetsV2Entry: RegistryEntry = {
       showToday: def.options?.showToday !== false,
       title: buildTitle(baseTitle, def.options?.titlePrefix),
       cardBg: def.options?.cardBg,
+      colorStyle: def.options?.colorStyle === 'outline' ? 'outline' : 'fill',
     }
   },
 }

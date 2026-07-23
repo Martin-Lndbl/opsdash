@@ -8,6 +8,7 @@
       v-if="chartData"
       :data="chartData"
       :show-labels="showLabels"
+      :color-style="colorStyle"
       :x-label="xLabel"
       :y-label="yLabel"
     />
@@ -31,6 +32,7 @@ const props = defineProps<{
   cardBg?: string | null
   showHeader?: boolean
   showLabels?: boolean
+  colorStyle?: 'fill' | 'outline'
   xLabel?: string
   yLabel?: string
   chartData?: { labels?: string[]; data?: number[]; colors?: string[] } | null
