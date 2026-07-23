@@ -51,7 +51,8 @@
           <template v-else-if="control.type === 'color'">
             <ColorPickerPopover
               :model-value="valueFor(control.key) || '#ffffff'"
-              @update:model-value="(v) => emit('change', control.key, v)"
+              :allow-clear="control.key === 'cardBg'"
+              @update:model-value="(v) => emit('change', control.key, v === '' ? null : v)"
             />
           </template>
         </div>
@@ -98,7 +99,8 @@
           <template v-else-if="control.type === 'color'">
             <ColorPickerPopover
               :model-value="valueFor(control.key) || '#ffffff'"
-              @update:model-value="(v) => emit('change', control.key, v)"
+              :allow-clear="control.key === 'cardBg'"
+              @update:model-value="(v) => emit('change', control.key, v === '' ? null : v)"
             />
           </template>
           <template v-else-if="control.type === 'colorlist'">

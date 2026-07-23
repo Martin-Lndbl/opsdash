@@ -296,6 +296,42 @@
                       </span>
                     </div>
 
+                    <div class="vsep" />
+
+                    <!-- Color group — GLOBAL, always available in edit mode. -->
+                    <div class="ic-group" :class="{ open: inlineGroupOpen === 'color' }">
+                      <button class="ic ic-group__trigger" type="button" :class="{ on: inlineGroupOpen === 'color' }" title="App background color (applies to every widget by default)" @click="toggleInlineGroup('color')">
+                        <span class="ic-color-dot" :class="{ 'ic-color-dot--none': !globalAppBg }" :style="globalAppBg ? { background: globalAppBg } : {}" />
+                        <span class="ic-lbl">Color</span>
+                      </button>
+                      <div v-if="inlineGroupOpen === 'color'" class="ic-group__rail ic-group__rail--color">
+                        <button
+                          type="button"
+                          class="ic-color-swatch ic-color-reset"
+                          :class="{ on: !globalAppBg }"
+                          title="Follow theme"
+                          @click.stop="() => { globalAppBg = null; inlineGroupOpen = null }"
+                        />
+                        <button
+                          v-for="color in CARD_BG_PALETTE"
+                          :key="color"
+                          type="button"
+                          class="ic-color-swatch"
+                          :class="{ on: globalAppBg?.toUpperCase() === color.toUpperCase() }"
+                          :style="{ background: color }"
+                          :title="color"
+                          @click.stop="() => { globalAppBg = color; inlineGroupOpen = null }"
+                        />
+                        <label class="ic-color-custom" title="Custom color">
+                          <input
+                            type="color"
+                            :value="globalAppBg ?? '#ffffff'"
+                            @change.stop="(e) => { globalAppBg = (e.target as HTMLInputElement).value; inlineGroupOpen = null }"
+                          />
+                        </label>
+                      </div>
+                    </div>
+
                     <template v-if="inlineSelectedItem">
                     <div class="vsep" />
 
@@ -383,45 +419,6 @@
                         <button class="ic ic-sub" type="button" :class="{ on: selectedScale === 'xl' }" :disabled="!inlineSelectedItem" title="Extra large scale" @click="setInlineScale('xl')">
                           <span class="ic-lbl">XL</span>
                         </button>
-                      </div>
-                    </div>
-
-                    <div class="vsep" />
-
-                    <!-- Color group — controls the GLOBAL app / widget background -->
-                    <div class="ic-group" :class="{ open: inlineGroupOpen === 'color' }">
-                      <button class="ic ic-group__trigger" type="button" :class="{ on: inlineGroupOpen === 'color' }" title="App background color (applies to every widget by default)" @click="toggleInlineGroup('color')">
-                        <span class="ic-color-dot" :class="{ 'ic-color-dot--none': !globalAppBg }" :style="globalAppBg ? { background: globalAppBg } : {}" />
-                        <span class="ic-lbl">Color</span>
-                      </button>
-                      <div v-if="inlineGroupOpen === 'color'" class="ic-group__rail ic-group__rail--color">
-                        <!-- Reset / no color -->
-                        <button
-                          type="button"
-                          class="ic-color-swatch ic-color-reset"
-                          :class="{ on: !globalAppBg }"
-                          title="Follow theme"
-                          @click.stop="() => { globalAppBg = null; inlineGroupOpen = null }"
-                        />
-                        <!-- Palette -->
-                        <button
-                          v-for="color in CARD_BG_PALETTE"
-                          :key="color"
-                          type="button"
-                          class="ic-color-swatch"
-                          :class="{ on: globalAppBg?.toUpperCase() === color.toUpperCase() }"
-                          :style="{ background: color }"
-                          :title="color"
-                          @click.stop="() => { globalAppBg = color; inlineGroupOpen = null }"
-                        />
-                        <!-- Custom -->
-                        <label class="ic-color-custom" title="Custom color">
-                          <input
-                            type="color"
-                            :value="globalAppBg ?? '#ffffff'"
-                            @change.stop="(e) => { globalAppBg = (e.target as HTMLInputElement).value; inlineGroupOpen = null }"
-                          />
-                        </label>
                       </div>
                     </div>
 
