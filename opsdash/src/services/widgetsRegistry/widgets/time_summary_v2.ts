@@ -117,6 +117,7 @@ function buildTimeSummaryProps(
   const calendarTodayItems = resolveCalendarTodayItems(ctx)
   const categoryTodayItems = resolveCategoryTodayItems(ctx)
   const weekDays = resolveWeekDays(ctx)
+  const perDayLanes = buildPerDayLanes(ctx)
   const rawHistoryView = String(def.options?.historyView ?? '').toLowerCase()
   const historyView =
     rawHistoryView === 'accordion' || rawHistoryView === 'pills'
@@ -165,6 +166,8 @@ function buildTimeSummaryProps(
     todayGroups: def.props?.todayGroups ?? todayGroups,
     calendarTodayItems,
     categoryTodayItems,
+    calendarLanesByDay: perDayLanes.calendars,
+    categoryLanesByDay: perDayLanes.categories,
     weekDays,
     allowedViews,
     defaultView,
@@ -213,6 +216,82 @@ function resolveDefaultView(input: any, displayMode: TimeSummaryDisplayMode, all
   }
   if (allowed.includes('weekly') && displayMode !== 'single_goal') return 'weekly'
   return 'daily'
+}
+
+type LaneItem = {
+  id: string
+  label: string
+  todayHours: number
+  color?: string | null
+  isUnassigned?: boolean
+}
+
+function buildPerDayLanes(ctx: any): {
+  calendars: Record<string, LaneItem[]>
+  categories: Record<string, LaneItem[]>
+} {
+  const perDay = ctx?.charts?.perDaySeries
+  const calendars: Record<string, LaneItem[]> = {}
+  const categories: Record<string, LaneItem[]> = {}
+  if (!perDay || !Array.isArray(perDay.labels) || !Array.isArray(perDay.series)) {
+    return { calendars, categories }
+  }
+  const labels: string[] = perDay.labels.map((label: any) => String(label ?? ''))
+  const calList = Array.isArray(ctx?.calendars) ? ctx.calendars : []
+  const calById = new Map<string, any>()
+  calList.forEach((cal: any) => {
+    const id = String(cal?.id ?? '').trim()
+    if (id) calById.set(id, cal)
+  })
+  const groups = Array.isArray(ctx?.groups)
+    ? ctx.groups
+    : (Array.isArray(ctx?.calendarGroups) ? ctx.calendarGroups : [])
+  const groupById = new Map<string, any>()
+  groups.forEach((group: any) => {
+    const id = String(group?.id ?? '').trim()
+    if (id) groupById.set(id, group)
+  })
+  const catAssignment: Record<string, string> = ctx?.calendarCategoryMap && typeof ctx.calendarCategoryMap === 'object'
+    ? ctx.calendarCategoryMap
+    : {}
+  const categoryColorMap: Record<string, string> = ctx?.categoryColorMap && typeof ctx.categoryColorMap === 'object'
+    ? ctx.categoryColorMap
+    : {}
+
+  labels.forEach((date, idx) => {
+    const calLanes: LaneItem[] = []
+    const catBuckets = new Map<string, number>()
+    perDay.series.forEach((row: any) => {
+      const id = String(row?.id ?? '').trim()
+      if (!id) return
+      const rawHours = Number(row?.data?.[idx] ?? 0)
+      const hours = Number.isFinite(rawHours) ? Math.max(0, rawHours) : 0
+      const cal = calById.get(id)
+      calLanes.push({
+        id,
+        label: String(cal?.displayname ?? cal?.name ?? row?.name ?? id),
+        todayHours: hours,
+        color: typeof cal?.color === 'string' ? cal.color : (typeof row?.color === 'string' ? row.color : undefined),
+      })
+      const catId = String(catAssignment[id] ?? '__uncategorized__')
+      catBuckets.set(catId, (catBuckets.get(catId) ?? 0) + hours)
+    })
+    calendars[date] = calLanes.sort((a, b) => b.todayHours - a.todayHours)
+    const catLanes: LaneItem[] = []
+    catBuckets.forEach((hours, catId) => {
+      const group = groupById.get(catId)
+      catLanes.push({
+        id: catId,
+        label: String(group?.label ?? (catId === '__uncategorized__' ? 'Uncategorised' : catId)),
+        todayHours: hours,
+        color: group?.color || categoryColorMap[catId],
+        isUnassigned: Boolean(group?.isUnassigned) || catId === '__uncategorized__',
+      })
+    })
+    categories[date] = catLanes.sort((a, b) => b.todayHours - a.todayHours)
+  })
+
+  return { calendars, categories }
 }
 
 function resolveCalendarTodayItems(ctx: any) {

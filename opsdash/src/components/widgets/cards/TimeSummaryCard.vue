@@ -58,7 +58,7 @@
 
         <div v-else-if="activeOverviewView === 'weekly' && preferredScope === 'calendar'" class="time-summary-lanes">
           <div class="time-summary-section-head">
-            <strong>Today by calendar</strong>
+            <strong>{{ activeDayLabel }} by calendar</strong>
             <span>{{ calendarTodayVisible.length }} calendar{{ calendarTodayVisible.length === 1 ? '' : 's' }}</span>
           </div>
           <div
@@ -76,7 +76,7 @@
 
         <div v-else-if="activeOverviewView === 'weekly'" class="time-summary-lanes">
           <div class="time-summary-section-head">
-            <strong>Today by category</strong>
+            <strong>{{ activeDayLabel }} by category</strong>
             <span>{{ categoryTodayVisible.length }} lane{{ categoryTodayVisible.length === 1 ? '' : 's' }}</span>
           </div>
           <div
@@ -376,6 +376,8 @@ const props = withDefaults(defineProps<{
   todayGroups?: TodayLane[]
   calendarTodayItems?: TodayLane[]
   categoryTodayItems?: TodayLane[]
+  calendarLanesByDay?: Record<string, TodayLane[]>
+  categoryLanesByDay?: Record<string, TodayLane[]>
   weekDays?: WeekDay[]
   allowedViews?: LegacyOverviewView[]
   defaultView?: LegacyOverviewView
@@ -593,8 +595,25 @@ const avgDayDeltaLabel = computed(() => {
 })
 const calendarTodayItems = computed<TodayLane[]>(() => normalizeLaneList(props.calendarTodayItems ?? todayItems.value))
 const categoryTodayItems = computed<TodayLane[]>(() => normalizeLaneList(props.categoryTodayItems ?? todayItems.value))
-const calendarTodayFiltered = computed(() => filterLaneList(calendarTodayItems.value))
-const categoryTodayFiltered = computed(() => filterLaneList(categoryTodayItems.value))
+// Active lane items follow the day picked in the bottom bars — falls back
+// to today's items if the widget wasn't given per-day breakdown for that
+// day (defensive; buildProps provides it for every day in weekDays).
+const activeCalendarItems = computed<TodayLane[]>(() => {
+  const key = activeDayKey.value
+  if (isActiveDayToday.value || !key) return calendarTodayItems.value
+  const source = props.calendarLanesByDay?.[key]
+  if (Array.isArray(source)) return normalizeLaneList(source)
+  return calendarTodayItems.value
+})
+const activeCategoryItems = computed<TodayLane[]>(() => {
+  const key = activeDayKey.value
+  if (isActiveDayToday.value || !key) return categoryTodayItems.value
+  const source = props.categoryLanesByDay?.[key]
+  if (Array.isArray(source)) return normalizeLaneList(source)
+  return categoryTodayItems.value
+})
+const calendarTodayFiltered = computed(() => filterLaneList(activeCalendarItems.value))
+const categoryTodayFiltered = computed(() => filterLaneList(activeCategoryItems.value))
 const calendarTodayVisible = computed(() => calendarTodayFiltered.value.slice(0, maxLanes.value))
 const categoryTodayVisible = computed(() => categoryTodayFiltered.value.slice(0, maxLanes.value))
 const calendarTodayMoreCount = computed(() => Math.max(0, calendarTodayFiltered.value.length - calendarTodayVisible.value.length))
