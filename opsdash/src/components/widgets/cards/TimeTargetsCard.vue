@@ -35,8 +35,7 @@
         Days left {{ total.daysLeft }} • Need {{ formatHours(total.needPerDay) }} h/day
       </div>
       <div class="line" v-if="showPace && total.targetHours > 0">
-        Pace: {{ totalDisplay.percentText }}% vs {{ total.calendarPercent.toFixed(0) }}% →
-        <span :class="['status-label', totalDisplay.statusClass]">{{ totalDisplay.paceLabel }}</span>
+        Pace: {{ totalDisplay.percentText }}% vs {{ total.calendarPercent.toFixed(0) }}%
       </div>
       <div class="line forecast" v-if="showForecast">
         Forecast: {{ summary.forecast.text }}
