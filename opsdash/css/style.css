@@ -407,25 +407,38 @@
   position:relative;
   background-color:var(--card);
   background-image:
+    linear-gradient(180deg,
+      color-mix(in oklab, var(--card), #ffffff 4%) 0%,
+      var(--card) 62%),
     radial-gradient(100% 70% at 0% 0%, color-mix(in oklab, var(--brand, #2563eb) 6%, transparent), transparent 24%);
-  border:0;
+  border:1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 84%);
   border-radius:calc(var(--opsdash-radius) * var(--widget-space, 1));
   padding:var(--widget-pad, 16px);
-  box-shadow:inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 40%, transparent);
+  box-shadow:
+    inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 40%, transparent),
+    inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 60%);
   font-size:var(--widget-font, 14px);
-  transition:box-shadow .18s ease;
+  transition:box-shadow .18s ease, border-color .18s ease;
 }
 /* When the user has picked a custom app background, drop the
-   brand-tinted radial overlay from widget cards so the chosen
-   color actually shows through instead of reading as a bluish
-   default fill. */
+   surface gradients + top highlight from widget cards so the
+   chosen color paints uniformly instead of reading as a bluish
+   default fill. Keep the border + inset accent for structure. */
 #opsdash.has-app-bg .card,
 #opsdash.has-app-bg .balance-card{
   background-image:none;
+  box-shadow:inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 40%, transparent);
+}
+#opsdash.has-app-bg .card:hover,
+#opsdash.has-app-bg .balance-card:hover{
+  box-shadow:inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 65%, transparent);
 }
 #opsdash .card:hover,
 #opsdash .balance-card:hover{
-  box-shadow:inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 65%, transparent);
+  border-color:color-mix(in oklab, var(--brand, #2563eb), transparent 72%);
+  box-shadow:
+    inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 65%, transparent),
+    inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 55%);
 }
 
 /* Unified header treatment — subtle, no shouting */

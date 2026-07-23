@@ -647,18 +647,19 @@ const onCategoryLabelCommit = (id: string, v: string) => {
 
 /* ── Range hero card ── */
 .rc {
-  border: 1px solid color-mix(in oklab, var(--brand), transparent 82%);
+  border: 1px solid color-mix(in oklab, var(--brand), transparent 78%);
   border-radius: 22px;
   padding: 17px 16px 15px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  box-shadow:
-    0 10px 24px rgba(15, 23, 42, .08),
-    inset 0 1px 0 rgba(255, 255, 255, .45);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 55%);
 }
 .hero {
-  background: var(--card, #fff);
+  background-color: var(--card, #fff);
+  background-image: linear-gradient(180deg,
+    color-mix(in oklab, var(--card, #fff), #ffffff 5%) 0%,
+    var(--card, #fff) 65%);
 }
 
 /* Dark-mode-only: put a tasteful gradient sheen back on every sidebar
@@ -828,14 +829,17 @@ const onCategoryLabelCommit = (id: string, v: string) => {
 
 /* ── Quick settings card ── */
 .qs {
-  border: 1px solid var(--line, #e2e8f0);
+  border: 1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 84%);
   border-radius: 18px;
   padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: var(--card, #fff);
-  box-shadow: 0 6px 16px rgba(15, 23, 42, .05);
+  background-color: var(--card, #fff);
+  background-image: linear-gradient(180deg,
+    color-mix(in oklab, var(--card, #fff), #ffffff 4%) 0%,
+    var(--card, #fff) 62%);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 60%);
 }
 .qs-hd { display: flex; align-items: center; justify-content: space-between; }
 .qs-row {
@@ -905,14 +909,17 @@ const onCategoryLabelCommit = (id: string, v: string) => {
 
 /* ── Goals editor ── */
 .ge {
-  border: 1px solid var(--line, #e2e8f0);
+  border: 1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 84%);
   border-radius: 18px;
   padding: 4px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: var(--card, #fff);
-  box-shadow: 0 6px 16px rgba(15, 23, 42, .05);
+  background-color: var(--card, #fff);
+  background-image: linear-gradient(180deg,
+    color-mix(in oklab, var(--card, #fff), #ffffff 4%) 0%,
+    var(--card, #fff) 62%);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 60%);
 }
 .ge-row {
   display: grid;
@@ -1146,14 +1153,17 @@ const onCategoryLabelCommit = (id: string, v: string) => {
 
 /* ── Setup card ── */
 .sc {
-  border: 1px solid var(--line, #e2e8f0);
+  border: 1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 84%);
   border-radius: 18px;
   padding: 4px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: var(--card, #fff);
-  box-shadow: 0 6px 16px rgba(15, 23, 42, .05);
+  background-color: var(--card, #fff);
+  background-image: linear-gradient(180deg,
+    color-mix(in oklab, var(--card, #fff), #ffffff 4%) 0%,
+    var(--card, #fff) 62%);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 60%);
 }
 
 .sc-toggle {
@@ -1325,21 +1335,26 @@ const onCategoryLabelCommit = (id: string, v: string) => {
 
 /* ── Dock ── */
 .dock {
-  border: 1px solid var(--line, #e2e8f0);
+  border: 1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 84%);
   border-radius: 20px;
   padding: 7px;
-  background:
-    linear-gradient(180deg, color-mix(in oklab, var(--card, #fff), var(--brand) 2%), color-mix(in oklab, var(--card, #fff), var(--fg, #0f172a) 2%));
+  background-color: var(--card, #fff);
+  background-image: linear-gradient(180deg,
+    color-mix(in oklab, var(--card, #fff), #ffffff 4%) 0%,
+    color-mix(in oklab, var(--card, #fff), var(--brand, #2563eb) 3%) 100%);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   margin-top: auto;
-  box-shadow:
-    0 10px 24px color-mix(in oklab, var(--fg, #0f172a) 6%, transparent),
-    inset 0 1px 0 color-mix(in oklab, var(--card, #fff) 40%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 60%);
 }
+:global(#opsdash.has-app-bg) .hero,
+:global(#opsdash.has-app-bg) .qs,
+:global(#opsdash.has-app-bg) .ge,
+:global(#opsdash.has-app-bg) .sc,
 :global(#opsdash.has-app-bg) .dock {
-  background: var(--card, #fff);
+  background-image: none;
+  background-color: var(--card, #fff);
 }
 
 .dk-btn {
