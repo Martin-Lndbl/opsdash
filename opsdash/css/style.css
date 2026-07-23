@@ -396,37 +396,31 @@
   font-weight:600;
   font-size:13px;
 }
-#opsdash .card{
+/* Lean shared polish — used for every card and for inner panels.
+   Small brand kiss in the top-left corner only (~40px reach), thin brand-tinted
+   border, one soft drop, a 2px left accent bar via inset shadow. */
+#opsdash .card,
+#opsdash .balance-card{
   position:relative;
   background-color:var(--card);
   background-image:
-    radial-gradient(circle at 0% 0%, color-mix(in oklab, var(--brand, #2563eb) 32%, transparent), transparent 55%),
-    linear-gradient(135deg, color-mix(in oklab, var(--brand, #2563eb) 22%, transparent) 0%, transparent 65%),
-    linear-gradient(180deg, color-mix(in oklab, #ffffff 10%, transparent), transparent 40%);
-  border:1px solid color-mix(in oklab, var(--brand, #2563eb) 42%, var(--line, #e5e7eb));
+    radial-gradient(120% 90% at 0% 0%, color-mix(in oklab, var(--brand, #2563eb) 10%, transparent), transparent 32%);
+  border:1px solid color-mix(in oklab, var(--brand, #2563eb) 20%, var(--line, #e5e7eb));
   border-radius:calc(var(--opsdash-radius) * var(--widget-space, 1));
   padding:var(--widget-pad, 16px);
   box-shadow:
-    inset 3px 0 0 color-mix(in oklab, var(--brand, #2563eb) 82%, transparent),
-    inset 0 1px 0 color-mix(in oklab, #ffffff 34%, transparent),
-    0 18px 34px rgba(0,0,0,0.22),
-    0 6px 16px rgba(0,0,0,0.18),
-    inset 0 -1px 0 rgba(0,0,0,0.22);
+    inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 55%, transparent),
+    inset 0 1px 0 color-mix(in oklab, #ffffff 18%, transparent),
+    0 10px 22px rgba(0,0,0,0.14);
   font-size:var(--widget-font, 14px);
-  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  transition:border-color .18s ease;
 }
-#opsdash .card:hover{
-  border-color:color-mix(in oklab, var(--brand, #2563eb) 58%, var(--line, #e5e7eb));
-  box-shadow:
-    inset 3px 0 0 var(--brand, #2563eb),
-    inset 0 1px 0 color-mix(in oklab, #ffffff 42%, transparent),
-    0 22px 40px rgba(0,0,0,0.26),
-    0 8px 18px rgba(0,0,0,0.20),
-    inset 0 -1px 0 rgba(0,0,0,0.22);
+#opsdash .card:hover,
+#opsdash .balance-card:hover{
+  border-color:color-mix(in oklab, var(--brand, #2563eb) 36%, var(--line, #e5e7eb));
 }
 
-/* Unified header treatment across every widget (matches TimeSummary firstline / hero label).
-   Targets every BEM-style "*__header" plus a handful of one-off header class names. */
+/* Unified header treatment — subtle, no shouting */
 #opsdash .card > .header,
 #opsdash .card > .time-summary-firstline,
 #opsdash .card > .mix-header,
@@ -442,26 +436,23 @@
   justify-content:space-between;
   gap:calc(10px * var(--widget-space, 1));
   margin-bottom:calc(10px * var(--widget-space, 1));
-  padding-bottom:calc(8px * var(--widget-space, 1));
-  border-bottom:1px solid color-mix(in oklab, var(--brand, #2563eb) 22%, transparent);
-  color:color-mix(in oklab, var(--fg), transparent 20%);
-  font-weight:800;
-  letter-spacing:.05em;
-  font-size:calc(12px * var(--widget-scale, 1));
-  text-transform:uppercase;
+  padding-bottom:calc(6px * var(--widget-space, 1));
+  border-bottom:1px solid color-mix(in oklab, var(--brand, #2563eb) 14%, transparent);
+  color:var(--fg);
+  font-weight:700;
+  font-size:calc(13px * var(--widget-scale, 1));
 }
 
-/* Widget titles: bigger, bolder, brand-tinted */
+/* Widget titles: quietly emphasized */
 #opsdash .card .chart-widget__title,
 #opsdash .card .calendar-stats__title,
 #opsdash .card .mix-title,
 #opsdash .card .targets-header__title,
 #opsdash .balance-card .title{
   color:var(--fg);
-  font-weight:850;
-  letter-spacing:-.02em;
-  font-size:calc(15px * var(--widget-scale, 1));
-  text-transform:none;
+  font-weight:750;
+  letter-spacing:-.01em;
+  font-size:calc(14px * var(--widget-scale, 1));
 }
 
 /* Subtitles */
@@ -470,46 +461,18 @@
 #opsdash .card .mix-subtitle,
 #opsdash .card .chart-widget__meta{
   color:var(--muted);
-  font-weight:600;
+  font-weight:500;
   font-size:calc(11px * var(--widget-scale, 1));
-  text-transform:none;
   letter-spacing:0;
 }
 
-/* Legend items across all chart widgets — pill treatment */
+/* Chart legend items — small subtle pill */
 #opsdash .card .chart-widget__legend > li,
 #opsdash .card ul.chart-widget__legend > li{
-  padding:calc(3px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
+  padding:calc(2px * var(--widget-space, 1)) calc(7px * var(--widget-space, 1));
   border-radius:999px;
-  background:color-mix(in oklab, var(--fg) 5%, transparent);
-  border:1px solid color-mix(in oklab, var(--line, #e5e7eb), transparent 45%);
-}
-#opsdash .balance-card{
-  position:relative;
-  background-color:var(--card);
-  background-image:
-    radial-gradient(circle at 0% 0%, color-mix(in oklab, var(--brand, #2563eb) 32%, transparent), transparent 55%),
-    linear-gradient(135deg, color-mix(in oklab, var(--brand, #2563eb) 22%, transparent) 0%, transparent 65%),
-    linear-gradient(180deg, color-mix(in oklab, #ffffff 10%, transparent), transparent 40%);
-  border:1px solid color-mix(in oklab, var(--brand, #2563eb) 42%, var(--line, #e5e7eb));
-  border-radius:calc(var(--opsdash-radius) * var(--widget-space, 1));
-  padding:var(--widget-pad, 16px);
-  box-shadow:
-    inset 3px 0 0 color-mix(in oklab, var(--brand, #2563eb) 82%, transparent),
-    inset 0 1px 0 color-mix(in oklab, #ffffff 34%, transparent),
-    0 18px 34px rgba(0,0,0,0.22),
-    0 6px 16px rgba(0,0,0,0.18),
-    inset 0 -1px 0 rgba(0,0,0,0.22);
-  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-}
-#opsdash .balance-card:hover{
-  border-color:color-mix(in oklab, var(--brand, #2563eb) 58%, var(--line, #e5e7eb));
-  box-shadow:
-    inset 3px 0 0 var(--brand, #2563eb),
-    inset 0 1px 0 color-mix(in oklab, #ffffff 42%, transparent),
-    0 22px 40px rgba(0,0,0,0.26),
-    0 8px 18px rgba(0,0,0,0.20),
-    inset 0 -1px 0 rgba(0,0,0,0.22);
+  background:color-mix(in oklab, var(--fg) 4%, transparent);
+  border:1px solid color-mix(in oklab, var(--line, #e5e7eb), transparent 55%);
 }
 #opsdash .card.full{
   width:100%;

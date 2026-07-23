@@ -922,11 +922,11 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   gap: calc(14px * var(--widget-space, 1));
   align-items: end;
   padding: calc(14px * var(--widget-space, 1));
-  border-radius: calc(16px * var(--widget-space, 1));
-  background:
-    radial-gradient(circle at 0 0, color-mix(in oklab, var(--brand, #2563eb) 22%, transparent), transparent 48%),
-    linear-gradient(135deg, color-mix(in oklab, var(--brand, #2563eb) 16%, transparent), color-mix(in oklab, var(--card, #fff) 88%, transparent));
-  border: 1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 72%);
+  border-radius: calc(14px * var(--widget-space, 1));
+  background-color: var(--card, #fff);
+  background-image: radial-gradient(120% 90% at 0% 0%, color-mix(in oklab, var(--brand, #2563eb) 10%, transparent), transparent 32%);
+  border: 1px solid color-mix(in oklab, var(--brand, #2563eb) 20%, var(--line, #e5e7eb));
+  box-shadow: inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 55%, transparent);
   color: var(--fg);
 }
 .time-summary-hero__label {
@@ -1025,14 +1025,12 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: calc(9px * var(--widget-space, 1));
   align-items: center;
-  min-height: calc(38px * var(--widget-space, 1));
-  padding: calc(9px * var(--widget-space, 1));
-  border-radius: calc(13px * var(--widget-space, 1));
-  background:
-    linear-gradient(90deg, color-mix(in oklab, var(--lane-color) 22%, transparent), transparent 68%),
-    color-mix(in oklab, var(--card, #fff) 92%, var(--fg) 8%);
-  border: 1px solid color-mix(in oklab, var(--lane-color) 30%, var(--line, #e5e7eb));
-  box-shadow: inset 3px 0 0 color-mix(in oklab, var(--lane-color) 82%, transparent);
+  min-height: calc(36px * var(--widget-space, 1));
+  padding: calc(8px * var(--widget-space, 1)) calc(10px * var(--widget-space, 1));
+  border-radius: calc(10px * var(--widget-space, 1));
+  background: color-mix(in oklab, var(--card, #fff) 96%, var(--fg) 4%);
+  border: 1px solid color-mix(in oklab, var(--lane-color) 18%, var(--line, #e5e7eb));
+  box-shadow: inset 2px 0 0 color-mix(in oklab, var(--lane-color) 60%, transparent);
 }
 .time-summary-lane .name {
   min-width: 0;
@@ -1095,14 +1093,11 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: calc(6px * var(--widget-space, 1));
   align-items: end;
-  height: calc(96px * var(--widget-space, 1));
-  padding: calc(12px * var(--widget-space, 1)) calc(10px * var(--widget-space, 1)) calc(7px * var(--widget-space, 1));
-  border-radius: calc(16px * var(--widget-space, 1));
-  border: 1px solid color-mix(in oklab, var(--line, #e5e7eb), transparent 35%);
-  background:
-    linear-gradient(180deg, color-mix(in oklab, var(--week-chart-accent) 8%, transparent), transparent 58%),
-    color-mix(in oklab, var(--fg) 4%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 42%, transparent);
+  height: calc(88px * var(--widget-space, 1));
+  padding: calc(10px * var(--widget-space, 1)) calc(10px * var(--widget-space, 1)) calc(6px * var(--widget-space, 1));
+  border-radius: calc(12px * var(--widget-space, 1));
+  border: 1px solid color-mix(in oklab, var(--line, #e5e7eb), transparent 45%);
+  background: color-mix(in oklab, var(--fg) 3%, transparent);
 }
 .time-summary-week__day {
   height: 100%;
@@ -1127,32 +1122,24 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
 .time-summary-week__day::after {
   content: '';
   position: absolute;
-  left: 7%;
-  right: 7%;
+  left: 12%;
+  right: 12%;
   top: calc(2px * var(--widget-space, 1));
   bottom: calc(20px * var(--widget-space, 1));
-  border-radius: 999px 999px calc(8px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
-  background:
-    linear-gradient(180deg, color-mix(in oklab, var(--fg) 4%, transparent), transparent),
-    color-mix(in oklab, var(--card, #fff) 78%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--line, #e5e7eb), transparent 48%);
+  border-radius: calc(4px * var(--widget-space, 1));
+  background: color-mix(in oklab, var(--fg) 3%, transparent);
 }
 .time-summary-week__day i {
   display: block;
   width: 100%;
-  min-height: calc(20px * var(--widget-space, 1));
-  border-radius: 999px 999px calc(7px * var(--widget-space, 1)) calc(7px * var(--widget-space, 1));
-  background:
-    radial-gradient(circle at 50% 10%, color-mix(in oklab, #fff 72%, transparent), transparent 31%),
-    linear-gradient(90deg, transparent, color-mix(in oklab, #fff 18%, transparent), transparent),
-    linear-gradient(180deg, color-mix(in oklab, var(--week-chart-accent) 72%, white), var(--week-chart-accent));
+  min-height: calc(18px * var(--widget-space, 1));
+  border-radius: calc(6px * var(--widget-space, 1)) calc(6px * var(--widget-space, 1)) calc(4px * var(--widget-space, 1)) calc(4px * var(--widget-space, 1));
+  background: linear-gradient(180deg, color-mix(in oklab, var(--week-chart-accent) 82%, white 18%), var(--week-chart-accent));
   position: relative;
   overflow: hidden;
   z-index: 1;
-  box-shadow:
-    0 7px 14px color-mix(in oklab, var(--week-chart-accent) 26%, transparent),
-    inset 0 1px 0 color-mix(in oklab, #fff 44%, transparent);
-  transition: transform .16s ease, filter .16s ease;
+  box-shadow: 0 2px 6px color-mix(in oklab, var(--week-chart-accent) 18%, transparent);
+  transition: transform .16s ease;
 }
 .time-summary-week__day:hover i {
   transform: translateY(-2px);
@@ -1176,13 +1163,10 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   z-index: 1;
 }
 .time-summary-week__day.active i {
-  background:
-    radial-gradient(circle at 50% 10%, color-mix(in oklab, #fff 70%, transparent), transparent 34%),
-    linear-gradient(180deg, color-mix(in oklab, #38bdf8 42%, var(--week-chart-accent)), var(--week-chart-accent));
+  background: linear-gradient(180deg, color-mix(in oklab, #38bdf8 30%, var(--week-chart-accent)), var(--week-chart-accent));
   box-shadow:
-    0 9px 18px color-mix(in oklab, var(--week-chart-accent) 34%, transparent),
-    0 0 0 1px color-mix(in oklab, var(--week-chart-accent) 35%, transparent),
-    inset 0 1px 0 color-mix(in oklab, #fff 50%, transparent);
+    0 3px 8px color-mix(in oklab, var(--week-chart-accent) 24%, transparent),
+    0 0 0 1px color-mix(in oklab, var(--week-chart-accent) 28%, transparent);
 }
 .time-summary-week__day.active span {
   color: var(--fg);
