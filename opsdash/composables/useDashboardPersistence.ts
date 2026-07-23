@@ -150,30 +150,14 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
             deps.preferredScope.value = raw
           }
         }
-        if (deps.globalAppBg) {
-          const raw = result.global_app_bg_read ?? result.global_app_bg_saved
-          if (typeof raw === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw)) {
-            deps.globalAppBg.value = raw
-          } else if (raw === null) {
-            deps.globalAppBg.value = null
-          }
-        }
-        const applyBgSlot = (slot: Ref<string | null> | undefined, raw: unknown) => {
+        const applyBg = (slot: Ref<string | null> | undefined, raw: unknown) => {
           if (!slot) return
-          if (typeof raw === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw)) {
-            slot.value = raw
-          } else if (raw === null) {
-            slot.value = null
-          }
+          if (typeof raw === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw)) slot.value = raw
+          else if (raw === null) slot.value = null
         }
-        applyBgSlot(
-          deps.globalAppBgLight,
-          result.global_app_bg_light_read ?? result.global_app_bg_light_saved,
-        )
-        applyBgSlot(
-          deps.globalAppBgDark,
-          result.global_app_bg_dark_read ?? result.global_app_bg_dark_saved,
-        )
+        applyBg(deps.globalAppBg, result.global_app_bg_read ?? result.global_app_bg_saved)
+        applyBg(deps.globalAppBgLight, result.global_app_bg_light_read ?? result.global_app_bg_light_saved)
+        applyBg(deps.globalAppBgDark, result.global_app_bg_dark_read ?? result.global_app_bg_dark_saved)
         if (deps.onboardingState) {
           const nextOnboarding = result.onboarding_read ?? result.onboarding_saved
           if (nextOnboarding && typeof nextOnboarding === 'object') {

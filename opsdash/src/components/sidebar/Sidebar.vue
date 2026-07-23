@@ -80,9 +80,13 @@
         <div class="qs-row">
           <span class="qs-label">Theme</span>
           <div class="seg w3">
-            <button type="button" :class="{ on: themePreference === 'auto' }" @click="$emit('update:theme-preference', 'auto')">Auto</button>
-            <button type="button" :class="{ on: themePreference === 'light' }" @click="$emit('update:theme-preference', 'light')">Light</button>
-            <button type="button" :class="{ on: themePreference === 'dark' }" @click="$emit('update:theme-preference', 'dark')">Dark</button>
+            <button
+              v-for="opt in (['auto', 'light', 'dark'] as const)"
+              :key="opt"
+              type="button"
+              :class="{ on: themePreference === opt }"
+              @click="$emit('update:theme-preference', opt)"
+            >{{ opt[0].toUpperCase() + opt.slice(1) }}</button>
           </div>
         </div>
 
@@ -149,7 +153,7 @@
                 max="1000"
                 step="0.5"
                 :value="targets.totalHours ?? 0"
-                @input="onTotalInput"
+                @input="(e) => { const v = readHours(e); v !== null && emit('update-total-hours', v) }"
               />
               <span class="ge-unit">h/wk</span>
             </div>
@@ -165,7 +169,7 @@
               <div class="ge-catcard__head">
                 <ColorPickerPopover
                   :model-value="cat.color || '#2563EB'"
-                  @update:model-value="(c) => onCategoryColor(cat.id, c)"
+                  @update:model-value="(c) => patchCategory(cat.id, { color: c || null })"
                 />
                 <input
                   class="ge-catlabel"
@@ -185,7 +189,7 @@
                     max="1000"
                     step="0.5"
                     :value="cat.targetHours ?? 0"
-                    @input="(e) => onCategoryInput(cat.id, e)"
+                    @input="(e) => { const v = readHours(e); v !== null && emit('update-category-target', { id: cat.id, value: v }) }"
                   />
                   <span class="ge-unit">h</span>
                 </div>
@@ -235,7 +239,7 @@
                       max="1000"
                       step="0.25"
                       :value="calendarTarget(cal.id)"
-                      @input="(e) => onCalendarTarget(cal.id, e)"
+                      @input="(e) => { const v = readHours(e); v !== null && emit('set-calendar-target', { id: cal.id, value: v }) }"
                     />
                     <span class="ge-unit">h</span>
                   </div>
@@ -370,12 +374,12 @@ import { computed, ref, watch } from 'vue'
 import { NcAppNavigation } from '@nextcloud/vue'
 import { getWeekNumber, parseDateKey } from '../../services/dateTime'
 import { preferredScope, globalAppBg, activeThemeMode } from '../../../composables/useGlobalPreferences'
-
-const defaultAppBg = computed(() => (activeThemeMode.value === 'dark' ? '#111111' : '#efefef'))
 import type { TargetCategoryConfig, TargetsConfig } from '../../services/targets'
 import ColorPickerPopover from '../ColorPickerPopover.vue'
 
 type SidebarCalendar = { id: string; displayname: string; color?: string }
+
+const defaultAppBg = computed(() => (activeThemeMode.value === 'dark' ? '#111111' : '#efefef'))
 
 const MDI_LAYERS = "M12,16L19.36,10.27L21,9L12,2L3,9L4.63,10.27M12,18.54L4.62,12.81L3,14.07L12,21.07L21,14.07L19.37,12.8L12,18.54Z"
 const MDI_CALENDAR_MULTIPLE = "M21,17V8H7V17H21M21,3A2,2 0 0,1 23,5V17A2,2 0 0,1 21,19H7C5.89,19 5,18.1 5,17V5A2,2 0 0,1 7,3H8V1H10V3H18V1H20V3H21M3,21H17V23H3C1.89,23 1,22.1 1,21V9H3V21M19,15H15V11H19V15Z"
@@ -477,161 +481,100 @@ function onColorInput(event: Event) {
   }
 }
 
-// Goals editor — collapsed by default. The parent handles the actual
-// mutation + persistence via useDashboardSelection.updateTargetsConfig.
+// Goals editor — collapsed by default. The parent owns persistence
+// via useDashboardSelection; this component only emits.
 const goalsExpanded = ref(false)
-function formatHours(value: number): string {
-  const n = Number(value) || 0
-  return (Math.round(n * 10) / 10).toString()
-}
-function onTotalInput(event: Event) {
-  const raw = Number((event.target as HTMLInputElement).value)
-  if (!Number.isFinite(raw)) return
-  const clamped = Math.max(0, Math.min(1000, raw))
-  emit('update-total-hours', clamped)
-}
-function onCategoryInput(id: string, event: Event) {
-  const raw = Number((event.target as HTMLInputElement).value)
-  if (!Number.isFinite(raw)) return
-  const clamped = Math.max(0, Math.min(1000, raw))
-  emit('update-category-target', { id, value: clamped })
-}
+const openCategoryId = ref('')
+const labelDrafts = ref<Record<string, string>>({})
 
-// Expandable per-category calendar assignments editor.
-const openCategoryId = ref<string>('')
-function toggleCategory(id: string) {
-  openCategoryId.value = openCategoryId.value === id ? '' : id
+const categories = computed<TargetCategoryConfig[]>(() => props.targets?.categories ?? [])
+
+// calendar id → category id, built once per change.
+const catByCalendar = computed(() => {
+  const groupToCat = new Map<number, string>()
+  for (const cat of categories.value) for (const g of cat.groupIds ?? []) groupToCat.set(g, cat.id)
+  const out: Record<string, string> = {}
+  const groups = props.groupsById ?? {}
+  for (const cal of props.calendars ?? []) out[cal.id] = groupToCat.get(groups[cal.id] ?? 0) ?? ''
+  return out
+})
+
+const readHours = (e: Event) => {
+  const n = Number((e.target as HTMLInputElement).value)
+  return Number.isFinite(n) ? Math.max(0, Math.min(1000, n)) : null
 }
+const formatHours = (v: number) => (Math.round((Number(v) || 0) * 10) / 10).toString()
 
-const categoriesRef = computed<TargetCategoryConfig[]>(() => props.targets?.categories ?? [])
+const calendarsForCategory = (id: string) =>
+  (props.calendars ?? []).filter((c) => catByCalendar.value[c.id] === id)
 
-function categoryGroupId(cat: TargetCategoryConfig): number {
-  const g = Array.isArray(cat.groupIds) ? cat.groupIds.find((n) => n > 0) : null
-  return g ?? 0
-}
-
-function categoryOfCalendar(calId: string): string {
-  const groupId = (props.groupsById ?? {})[calId] ?? 0
-  if (!groupId) return ''
-  const match = categoriesRef.value.find((cat) => (cat.groupIds || []).includes(groupId))
-  return match?.id ?? ''
-}
-
-function calendarsForCategory(categoryId: string): SidebarCalendar[] {
-  const list = props.calendars ?? []
-  return list.filter((cal) => categoryOfCalendar(cal.id) === categoryId)
-}
-
-function assignableCalendars(categoryId: string): SidebarCalendar[] {
-  const list = props.calendars ?? []
-  return list.filter((cal) => {
-    const cur = categoryOfCalendar(cal.id)
-    return !cur || cur === categoryId
+const assignableCalendars = (id: string) =>
+  (props.calendars ?? []).filter((c) => {
+    const cur = catByCalendar.value[c.id]
+    return !cur || cur === id
   })
-}
 
-function calendarTarget(calId: string): number {
-  const map = props.currentTargets ?? {}
-  const raw = Number(map[calId])
-  if (!Number.isFinite(raw)) return 0
-  return Math.round(raw * 100) / 100
-}
+const calendarTarget = (calId: string) =>
+  Math.round((Number(props.currentTargets?.[calId]) || 0) * 100) / 100
 
-function onCalendarTarget(calId: string, event: Event) {
-  const raw = Number((event.target as HTMLInputElement).value)
-  if (!Number.isFinite(raw)) return
-  const clamped = Math.max(0, Math.min(1000, raw))
-  emit('set-calendar-target', { id: calId, value: clamped })
-}
+const toggleCategory = (id: string) => { openCategoryId.value = openCategoryId.value === id ? '' : id }
 
-function onAssignCalendar(calId: string, categoryId: string) {
-  const groupId = categoryId
-    ? categoryGroupId(categoriesRef.value.find((c) => c.id === categoryId) as TargetCategoryConfig)
-    : 0
+const patchCategories = (next: TargetCategoryConfig[]) => {
+  if (props.targets) emit('update-targets-config', { ...props.targets, categories: next })
+}
+const patchCategory = (id: string, patch: Partial<TargetCategoryConfig>) =>
+  patchCategories(categories.value.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+
+const onAssignCalendar = (calId: string, categoryId: string) => {
+  const target = categoryId ? categories.value.find((c) => c.id === categoryId) : null
+  const groupId = target?.groupIds?.find((n) => n > 0) ?? 0
   emit('set-group', { id: calId, groupId })
 }
-
-function onAddCalendarChange(categoryId: string, select: HTMLSelectElement) {
-  const calId = select.value
-  if (!calId) return
-  onAssignCalendar(calId, categoryId)
+const onAddCalendarChange = (categoryId: string, select: HTMLSelectElement) => {
+  if (!select.value) return
+  onAssignCalendar(select.value, categoryId)
   select.value = ''
 }
 
-function nextGroupId(): number {
+const addCategory = () => {
+  if (!props.targets) return
   const used = new Set<number>()
-  categoriesRef.value.forEach((cat) => (cat.groupIds || []).forEach((n) => used.add(n)))
-  for (let i = 1; i <= 9; i += 1) {
-    if (!used.has(i)) return i
-  }
-  return 0
-}
-
-function cloneCategories(): TargetCategoryConfig[] {
-  return categoriesRef.value.map((c) => ({ ...c, groupIds: [...(c.groupIds || [])] }))
-}
-
-function emitCategoriesUpdate(nextCategories: TargetCategoryConfig[]) {
-  if (!props.targets) return
-  emit('update-targets-config', { ...props.targets, categories: nextCategories })
-}
-
-function addCategory() {
-  if (!props.targets) return
-  const groupId = nextGroupId()
-  const existingIds = new Set(categoriesRef.value.map((c) => c.id))
-  let id = `cat_${Date.now().toString(36)}`
-  while (existingIds.has(id)) id += 'x'
-  const cat: TargetCategoryConfig = {
+  for (const c of categories.value) for (const g of c.groupIds ?? []) used.add(g)
+  let groupId = 0
+  for (let i = 1; i <= 9; i += 1) if (!used.has(i)) { groupId = i; break }
+  const id = `cat_${Date.now().toString(36)}`
+  patchCategories([...categories.value, {
     id,
-    label: `Category ${categoriesRef.value.length + 1}`,
+    label: `Category ${categories.value.length + 1}`,
     targetHours: 0,
     includeWeekend: false,
     paceMode: 'days_only',
     color: null,
     groupIds: groupId ? [groupId] : [],
-  }
-  emitCategoriesUpdate([...cloneCategories(), cat])
+  }])
   openCategoryId.value = id
 }
-
-function removeCategory(id: string) {
-  if (!props.targets) return
-  const next = cloneCategories().filter((c) => c.id !== id)
-  emitCategoriesUpdate(next)
+const removeCategory = (id: string) => {
+  patchCategories(categories.value.filter((c) => c.id !== id))
   if (openCategoryId.value === id) openCategoryId.value = ''
 }
 
-// Editing the label live would fight with normalizeTargetsConfig's
-// .trim() + empty-fallback: deleting the last character snaps the
-// value back to the capitalized id mid-edit. Keep a per-row draft
-// while the user types and only commit on blur / Enter.
-const labelDrafts = ref<Record<string, string>>({})
-
-function labelDraft(id: string, actual: string): string {
-  const draft = labelDrafts.value[id]
-  return draft !== undefined ? draft : actual
+// Label draft: normalizeTargetsConfig trims + falls back to capitalize(id)
+// on every emit, so live-committing keystrokes fights the input. Buffer
+// per row while typing; commit on blur / Enter / change.
+const labelDraft = (id: string, actual: string) =>
+  labelDrafts.value[id] !== undefined ? labelDrafts.value[id] : actual
+const onCategoryLabelInput = (id: string, v: string) => {
+  labelDrafts.value = { ...labelDrafts.value, [id]: v }
 }
-
-function onCategoryLabelInput(id: string, value: string) {
-  labelDrafts.value = { ...labelDrafts.value, [id]: value }
-}
-
-function onCategoryLabelCommit(id: string, value: string) {
-  const trimmed = value.trim()
+const onCategoryLabelCommit = (id: string, v: string) => {
+  const trimmed = v.trim()
   const next = { ...labelDrafts.value }
   delete next[id]
   labelDrafts.value = next
-  if (!trimmed) return
-  const current = categoriesRef.value.find((c) => c.id === id)
-  if (!current || current.label === trimmed) return
-  const nextCats = cloneCategories().map((c) => (c.id === id ? { ...c, label: trimmed } : c))
-  emitCategoriesUpdate(nextCats)
-}
-
-function onCategoryColor(id: string, color: string) {
-  const next = cloneCategories().map((c) => (c.id === id ? { ...c, color: color || null } : c))
-  emitCategoriesUpdate(next)
+  const cur = categories.value.find((c) => c.id === id)
+  if (!trimmed || !cur || cur.label === trimmed) return
+  patchCategory(id, { label: trimmed })
 }
 </script>
 

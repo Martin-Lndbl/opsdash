@@ -82,32 +82,22 @@ function neutralCardFill(ctx: CanvasRenderingContext2D): string {
   return `rgb(${mix(cardRgb.r, fgRgb.r)}, ${mix(cardRgb.g, fgRgb.g)}, ${mix(cardRgb.b, fgRgb.b)})`
 }
 
-function perceivedLuminance(rgb: RgbColor): number {
-  // Rec. 709 relative luminance, 0..1 on 0..255 input.
-  return (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255
-}
+// Rec.709 relative luminance on 0..255 input, 0..1 output.
+const luminance = (rgb: RgbColor) => (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255
 
 function isCardLight(ctx: CanvasRenderingContext2D): boolean {
-  const cvEl = ctx.canvas as HTMLCanvasElement
-  const cardBg = themeVar(cvEl, '--card', '#ffffff')
-  const cardRgb = parseColorString(cardBg) ?? { r: 255, g: 255, b: 255 }
-  return perceivedLuminance(cardRgb) > 0.55
+  const rgb = parseColorString(themeVar(ctx.canvas as HTMLCanvasElement, '--card', '#ffffff'))
+  return luminance(rgb ?? { r: 255, g: 255, b: 255 }) > 0.55
 }
 
-// In outline mode on a light card the raw item color often reads
-// too pale (bright yellows, mints, sky blues on white barely
-// register). Nudge it toward black so the stroke keeps clear
-// contrast without shifting hue much.
+// Outline mode on light cards: mint/sky/yellow strokes ghost out.
+// Ramp: lum ≤ 0.35 unchanged, lum 1.0 mixed 42% toward black.
 function outlineStrokeColor(ctx: CanvasRenderingContext2D, color: string): string {
-  if (!isCardLight(ctx)) return color
   const rgb = parseColorString(color)
-  if (!rgb) return color
-  const lum = perceivedLuminance(rgb)
+  if (!rgb || !isCardLight(ctx)) return color
+  const lum = luminance(rgb)
   if (lum <= 0.35) return color
-  // Ramp: the brighter the color, the more we darken it.
-  // lum 0.35 → 0 mix, lum 1.0 → 0.42 mix toward black.
-  const ratio = Math.min(0.42, ((lum - 0.35) / 0.65) * 0.42)
-  return mixToward(rgb, 0, ratio)
+  return mixToward(rgb, 0, ((lum - 0.35) / 0.65) * 0.42)
 }
 
 function tintOverlay(color: string, alphaTop: number, alphaBottom: number): (grad: CanvasGradient) => void {

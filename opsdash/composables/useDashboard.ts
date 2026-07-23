@@ -260,29 +260,19 @@ export function useDashboard(deps: DashboardDeps) {
         if (json.preferredScope === 'calendar' || json.preferredScope === 'category') {
           preferredScope.value = json.preferredScope
         }
-        const hexRe = /^#[0-9a-fA-F]{6}$/
-        const legacyBg = typeof json.globalAppBg === 'string' && hexRe.test(json.globalAppBg)
-          ? json.globalAppBg
-          : (json.globalAppBg === null ? null : undefined)
-        const lightRaw = typeof json.globalAppBgLight === 'string' && hexRe.test(json.globalAppBgLight)
-          ? json.globalAppBgLight
-          : (json.globalAppBgLight === null ? null : undefined)
-        const darkRaw = typeof json.globalAppBgDark === 'string' && hexRe.test(json.globalAppBgDark)
-          ? json.globalAppBgDark
-          : (json.globalAppBgDark === null ? null : undefined)
-        // Per-theme slots take precedence; the legacy single-value field
-        // seeds any slot that wasn't sent so upgrades keep the color the
-        // user picked in whichever theme they were in.
-        if (lightRaw !== undefined) {
-          globalAppBgLight.value = lightRaw
-        } else if (legacyBg !== undefined) {
-          globalAppBgLight.value = legacyBg
-        }
-        if (darkRaw !== undefined) {
-          globalAppBgDark.value = darkRaw
-        } else if (legacyBg !== undefined) {
-          globalAppBgDark.value = legacyBg
-        }
+        // Per-theme slots. We deliberately ignore the legacy
+        // single-value globalAppBg here: seeding both light and dark
+        // slots from one saved color reintroduces the exact bleed the
+        // split was meant to fix. Users who had a picked bg lose it
+        // once and re-pick per theme; the CSS defaults (#EFEFEF /
+        // #111111) apply until they do.
+        const parseBg = (v: unknown) =>
+          typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v
+          : v === null ? null : undefined
+        const lightRaw = parseBg(json.globalAppBgLight)
+        const darkRaw = parseBg(json.globalAppBgDark)
+        if (lightRaw !== undefined) globalAppBgLight.value = lightRaw
+        if (darkRaw !== undefined) globalAppBgDark.value = darkRaw
         void globalAppBg
 
         if (deps.isDebug?.()) {
