@@ -15,7 +15,7 @@ import { formatLookbackLabel, sortLookbackOffsets } from './chartHelpers'
 const baseTitle = 'Time Summary'
 const lookbackTitle = 'Period Comparison'
 type TimeSummaryDisplayMode = 'single_goal' | 'calendar_goals' | 'category_and_calendar_goals'
-type TimeSummaryOverviewView = 'daily' | 'calendars' | 'categories'
+type TimeSummaryOverviewView = 'daily' | 'weekly'
 const summaryToggleKeys: Array<keyof TargetsConfig['timeSummary']> = [
   'showTotal',
   'showAverage',
@@ -194,18 +194,24 @@ function buildTimeSummaryProps(
 }
 
 function resolveAllowedViews(displayMode: TimeSummaryDisplayMode): TimeSummaryOverviewView[] {
-  if (displayMode === 'category_and_calendar_goals') return ['daily', 'calendars', 'categories']
-  if (displayMode === 'calendar_goals') return ['daily', 'calendars']
-  return ['daily']
+  // "Weekly" replaces the old calendars/categories tabs; the actual scope
+  // (calendar vs category) is now driven by preferredScope from the sidebar.
+  if (displayMode === 'single_goal') return ['daily']
+  return ['daily', 'weekly']
 }
 
 function resolveDefaultView(input: any, displayMode: TimeSummaryDisplayMode, allowed: TimeSummaryOverviewView[]): TimeSummaryOverviewView {
   const value = String(input ?? '').toLowerCase()
-  if (value === 'daily' || value === 'calendars' || value === 'categories') {
-    if (allowed.includes(value)) return value
+  // Collapse legacy 'calendars' / 'categories' to 'weekly'.
+  const norm: TimeSummaryOverviewView | 'auto' | '' =
+    value === 'daily' ? 'daily'
+    : value === 'weekly' || value === 'calendars' || value === 'categories' ? 'weekly'
+    : value === 'auto' ? 'auto'
+    : ''
+  if (norm === 'daily' || norm === 'weekly') {
+    if (allowed.includes(norm)) return norm
   }
-  if (displayMode === 'category_and_calendar_goals' && allowed.includes('categories')) return 'categories'
-  if (displayMode === 'calendar_goals' && allowed.includes('calendars')) return 'calendars'
+  if (allowed.includes('weekly') && displayMode !== 'single_goal') return 'weekly'
   return 'daily'
 }
 

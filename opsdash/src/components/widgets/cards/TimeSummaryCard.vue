@@ -56,7 +56,7 @@
           </div>
         </div>
 
-        <div v-else-if="activeOverviewView === 'calendars'" class="time-summary-lanes">
+        <div v-else-if="activeOverviewView === 'weekly' && preferredScope === 'calendar'" class="time-summary-lanes">
           <div class="time-summary-section-head">
             <strong>Today by calendar</strong>
             <span>{{ calendarTodayVisible.length }} calendar{{ calendarTodayVisible.length === 1 ? '' : 's' }}</span>
@@ -74,7 +74,7 @@
           <div v-if="calendarTodayMoreCount > 0" class="time-summary-more">+ {{ calendarTodayMoreCount }} more</div>
         </div>
 
-        <div v-else-if="activeOverviewView === 'categories'" class="time-summary-lanes">
+        <div v-else-if="activeOverviewView === 'weekly'" class="time-summary-lanes">
           <div class="time-summary-section-head">
             <strong>Today by category</strong>
             <span>{{ categoryTodayVisible.length }} lane{{ categoryTodayVisible.length === 1 ? '' : 's' }}</span>
@@ -212,7 +212,16 @@ type SummaryConfig = {
 }
 
 type DisplayMode = 'single_goal' | 'calendar_goals' | 'category_and_calendar_goals'
-type OverviewView = 'daily' | 'calendars' | 'categories'
+type OverviewView = 'daily' | 'weekly'
+type LegacyOverviewView = OverviewView | 'calendars' | 'categories'
+function normalizeOverviewView(input: any): OverviewView {
+  // Legacy 'calendars' and 'categories' values collapse to the new
+  // 'weekly' tab; the actual calendar-vs-category display is now
+  // driven by preferredScope from the sidebar.
+  if (input === 'daily') return 'daily'
+  if (input === 'weekly' || input === 'calendars' || input === 'categories') return 'weekly'
+  return 'daily'
+}
 
 type TodayLane = {
   id: string
@@ -365,8 +374,8 @@ const props = withDefaults(defineProps<{
   calendarTodayItems?: TodayLane[]
   categoryTodayItems?: TodayLane[]
   weekDays?: WeekDay[]
-  allowedViews?: OverviewView[]
-  defaultView?: OverviewView
+  allowedViews?: LegacyOverviewView[]
+  defaultView?: LegacyOverviewView
   showWeekMiniChart?: boolean
   showDailyKpis?: boolean
   showEmptyLanes?: boolean
@@ -485,22 +494,22 @@ const maxLanes = computed(() => {
 })
 const availableViews = computed<OverviewView[]>(() => {
   const raw = Array.isArray(props.allowedViews) ? props.allowedViews : []
-  const valid = raw.filter((view): view is OverviewView => view === 'daily' || view === 'calendars' || view === 'categories')
-  if (valid.length) return valid
-  if (displayMode.value === 'category_and_calendar_goals') return ['daily', 'calendars', 'categories']
-  if (displayMode.value === 'calendar_goals') return ['daily', 'calendars']
-  return ['daily']
+  // Collapse legacy 'calendars' / 'categories' to 'weekly' and dedupe.
+  const seen = new Set<OverviewView>()
+  raw.forEach((entry) => {
+    const norm = normalizeOverviewView(entry)
+    seen.add(norm)
+  })
+  if (seen.size) return Array.from(seen)
+  if (displayMode.value === 'single_goal') return ['daily']
+  return ['daily', 'weekly']
 })
 const activeOverviewView = ref<OverviewView>('daily')
 const overviewViewInitialized = ref(false)
 const defaultOverviewView = computed<OverviewView>(() => {
-  const requested = props.defaultView
+  const requested = props.defaultView ? normalizeOverviewView(props.defaultView) : null
   if (requested && availableViews.value.includes(requested)) return requested
-  // Follow the global scope preference when the corresponding tab is available.
-  const scoped: OverviewView = preferredScope.value === 'calendar' ? 'calendars' : 'categories'
-  if (availableViews.value.includes(scoped)) return scoped
-  if (displayMode.value === 'category_and_calendar_goals' && availableViews.value.includes('categories')) return 'categories'
-  if (displayMode.value === 'calendar_goals' && availableViews.value.includes('calendars')) return 'calendars'
+  if (availableViews.value.includes('weekly') && displayMode.value !== 'single_goal') return 'weekly'
   return 'daily'
 })
 watch(
@@ -520,8 +529,6 @@ watch(
 
 function selectView(view: OverviewView) {
   activeOverviewView.value = view
-  if (view === 'calendars') preferredScope.value = 'calendar'
-  else if (view === 'categories') preferredScope.value = 'category'
 }
 const showTabs = computed(() => availableViews.value.length > 1)
 const weekDays = computed<WeekDay[]>(() => Array.isArray(props.weekDays) ? props.weekDays : [])
@@ -791,8 +798,7 @@ function toggleAccordion(offset: number) {
 }
 
 function viewLabel(view: OverviewView) {
-  if (view === 'calendars') return 'Calendars'
-  if (view === 'categories') return 'Categories'
+  if (view === 'weekly') return 'Weekly'
   return 'Daily'
 }
 
