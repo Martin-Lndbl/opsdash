@@ -1001,9 +1001,9 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   cursor: pointer;
 }
 .time-summary-tabs button.active {
-  color: var(--brand);
-  background: color-mix(in oklab, var(--brand, #2563eb) 16%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--brand, #2563eb), transparent 72%);
+  color: color-mix(in oklab, var(--brand, #2563eb), var(--fg) 30%);
+  background: color-mix(in oklab, var(--brand, #2563eb) 28%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--brand, #2563eb), transparent 50%);
 }
 .time-summary-section-head {
   display: flex;

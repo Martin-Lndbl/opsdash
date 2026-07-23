@@ -23,7 +23,7 @@
     --bg:#0b1220;
     --card:#0f172a;
     --line:#1f2937;
-    --brand: var(--color-primary-element-light, var(--color-primary, var(--color-primary-element, var(--primary-color, #60a5fa))));
+    --brand: color-mix(in oklab, var(--color-primary-element-light, var(--color-primary, var(--color-primary-element, var(--primary-color, #60a5fa)))), white 20%);
     --soft:#0b2942;
     --pos:#22c55e;
     --neg:#f87171;
@@ -54,7 +54,9 @@
   --bg:#0b1220;
   --card:#0f172a;
   --line:#1f2937;
-  --brand: var(--color-primary-element-light, var(--color-primary, var(--color-primary-element, var(--primary-color, #60a5fa))));
+  /* Guarantee brand stays light-enough on dark surfaces even when NC's
+     --color-primary is a dark hue (typical for light-theme users). */
+  --brand: color-mix(in oklab, var(--color-primary-element-light, var(--color-primary, var(--color-primary-element, var(--primary-color, #60a5fa)))), white 20%);
   --soft:#0b2942;
   --pos:#22c55e;
   --neg:#f87171;
@@ -2373,10 +2375,20 @@
   padding:0 11px;
   flex-direction:row;
   gap:7px;
-  border:1px solid color-mix(in oklab,var(--brand),transparent 60%);
-  background:color-mix(in oklab,var(--brand),transparent 88%);
-  color:var(--brand);
-  box-shadow:0 3px 10px color-mix(in oklab,var(--brand),transparent 88%);
+  border:1px solid color-mix(in oklab,var(--brand),transparent 45%);
+  background:color-mix(in oklab,var(--brand),transparent 78%);
+  color:color-mix(in oklab, var(--brand), var(--fg) 25%);
+  box-shadow:0 3px 10px color-mix(in oklab,var(--brand),transparent 82%);
+}
+#opsdash.opsdash-theme-dark .ic--config,
+#opsdash.opsdash-theme-dark .ic-group__trigger{
+  background:color-mix(in oklab,var(--brand),transparent 55%);
+  border-color:color-mix(in oklab,var(--brand),transparent 20%);
+  color:var(--fg);
+}
+#opsdash.opsdash-theme-dark .ic-group.open .ic-group__trigger{
+  background:color-mix(in oklab,var(--brand),transparent 35%);
+  color:var(--fg);
 }
 #opsdash .ic--config svg{ width:18px;height:16px; }
 #opsdash .ic--config .ic-lbl{ font-size:10px; }
