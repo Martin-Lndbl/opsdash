@@ -179,49 +179,51 @@
                   @blur="(e) => onCategoryLabelCommit(cat.id, (e.target as HTMLInputElement).value)"
                   @keydown.enter.prevent="($event.target as HTMLInputElement).blur()"
                 />
-                <div class="ge-input ge-input--sm">
-                  <input
-                    type="number"
-                    min="0"
-                    max="1000"
-                    step="0.5"
-                    :value="cat.targetHours ?? 0"
-                    @input="(e) => { const v = readHours(e); v !== null && emit('update-category-target', { id: cat.id, value: v }) }"
-                  />
-                  <span class="ge-unit">h</span>
-                </div>
-                <ColorPickerPopover
-                  class="ge-color"
-                  :model-value="cat.color || '#2563EB'"
-                  @update:model-value="(c) => patchCategory(cat.id, { color: c || null })"
-                >
-                  <span class="ge-color__spacer" aria-hidden="true" />
-                </ColorPickerPopover>
-                <button
-                  class="ge-catcard__toggle"
-                  type="button"
-                  :aria-expanded="openCategoryId === cat.id"
-                  :aria-label="openCategoryId === cat.id ? 'Collapse calendars' : 'Expand calendars'"
-                  :title="calendarsForCategory(cat.id).length + ' calendar' + (calendarsForCategory(cat.id).length === 1 ? '' : 's')"
-                  @click="toggleCategory(cat.id)"
-                >
-                  <span class="ge-catcard__count">{{ calendarsForCategory(cat.id).length }}</span>
-                  <svg
-                    class="ge-caret"
-                    :class="{ 'ge-caret--open': openCategoryId === cat.id }"
-                    viewBox="0 0 12 7" width="10" height="6" fill="none"
+                <div class="ge-catcard__controls">
+                  <div class="ge-input ge-input--sm">
+                    <input
+                      type="number"
+                      min="0"
+                      max="1000"
+                      step="0.5"
+                      :value="cat.targetHours ?? 0"
+                      @input="(e) => { const v = readHours(e); v !== null && emit('update-category-target', { id: cat.id, value: v }) }"
+                    />
+                    <span class="ge-unit">h</span>
+                  </div>
+                  <ColorPickerPopover
+                    class="ge-color"
+                    :model-value="cat.color || '#2563EB'"
+                    @update:model-value="(c) => patchCategory(cat.id, { color: c || null })"
                   >
-                    <path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </button>
-                <button
-                  class="ge-catcard__remove"
-                  type="button"
-                  :disabled="(targets.categories || []).length <= 1"
-                  aria-label="Remove category"
-                  title="Remove category"
-                  @click="removeCategory(cat.id)"
-                >×</button>
+                    <span class="ge-color__spacer" aria-hidden="true" />
+                  </ColorPickerPopover>
+                  <button
+                    class="ge-catcard__toggle"
+                    type="button"
+                    :aria-expanded="openCategoryId === cat.id"
+                    :aria-label="openCategoryId === cat.id ? 'Collapse calendars' : 'Expand calendars'"
+                    :title="calendarsForCategory(cat.id).length + ' calendar' + (calendarsForCategory(cat.id).length === 1 ? '' : 's')"
+                    @click="toggleCategory(cat.id)"
+                  >
+                    <span class="ge-catcard__count">{{ calendarsForCategory(cat.id).length }}</span>
+                    <svg
+                      class="ge-caret"
+                      :class="{ 'ge-caret--open': openCategoryId === cat.id }"
+                      viewBox="0 0 12 7" width="10" height="6" fill="none"
+                    >
+                      <path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <button
+                    class="ge-catcard__remove"
+                    type="button"
+                    :disabled="(targets.categories || []).length <= 1"
+                    aria-label="Remove category"
+                    title="Remove category"
+                    @click="removeCategory(cat.id)"
+                  >×</button>
+                </div>
               </div>
 
               <div v-if="openCategoryId === cat.id" class="ge-catcard__body">
@@ -960,11 +962,16 @@ const onCategoryLabelCommit = (id: string, v: string) => {
   box-shadow: 0 4px 10px color-mix(in oklab, var(--brand, #2563eb) 8%, transparent);
 }
 .ge-catcard__head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto auto;
-  align-items: center;
-  gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   padding: 2px 4px;
+}
+.ge-catcard__controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
 }
 .ge-color :deep(.cpp-trigger) {
   padding: 3px;
