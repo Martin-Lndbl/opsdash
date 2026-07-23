@@ -1,5 +1,9 @@
 <template>
-  <div class="balance-card" :style="cardStyle">
+  <div
+    class="balance-card"
+    :class="{ 'balance-card--compact': isCompact }"
+    :style="cardStyle"
+  >
     <div class="header" :class="{ compact: isCompact }">
       <div class="title-row" v-if="showHeader">
         <span class="title">{{ titleText }}</span>
@@ -406,6 +410,9 @@ function computedPeriodTag(idx: number) {
   flex-direction:column;
   gap:var(--widget-gap, 10px);
   font-size:calc(14px * var(--widget-scale, 1));
+}
+.balance-card--compact{
+  justify-content:center;
 }
 .header{
   display:flex;

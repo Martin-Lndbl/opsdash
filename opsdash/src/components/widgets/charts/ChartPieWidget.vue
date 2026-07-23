@@ -1,21 +1,27 @@
 <template>
-  <div class="card chart-widget" :style="cardStyle">
+  <div
+    class="card chart-widget"
+    :class="{ 'chart-widget--centered': !hasLegend }"
+    :style="cardStyle"
+  >
     <div v-if="showHeader" class="chart-widget__header">
       <div class="chart-widget__title">{{ titleText }}</div>
       <div v-if="subtitle" class="chart-widget__subtitle">{{ subtitle }}</div>
     </div>
-    <PieChart
-      v-if="chartData"
-      :data="chartData"
-      :colors-by-id="colorsById"
-      :colors-by-name="colorsByName"
-      :show-labels="showLabels"
-      :color-style="colorStyle"
-      :color-tint="colorTint"
-      :highlight-id="hoveredId"
-    />
-    <div v-else class="chart-widget__empty">No data</div>
-    <ul v-if="showLegend && legendItems.length" class="chart-widget__legend">
+    <div class="chart-widget__body">
+      <PieChart
+        v-if="chartData"
+        :data="chartData"
+        :colors-by-id="colorsById"
+        :colors-by-name="colorsByName"
+        :show-labels="showLabels"
+        :color-style="colorStyle"
+        :color-tint="colorTint"
+        :highlight-id="hoveredId"
+      />
+      <div v-else class="chart-widget__empty">No data</div>
+    </div>
+    <ul v-if="hasLegend" class="chart-widget__legend">
       <li
         v-for="item in legendItems"
         :key="item.id"
@@ -83,6 +89,8 @@ const legendItems = computed(() => {
     .filter((entry) => entry.pctRounded > 0)
     .sort((a, b) => b.raw - a.raw)
 })
+
+const hasLegend = computed(() => (props.showLegend !== false) && legendItems.value.length > 0)
 </script>
 
 <style scoped>
@@ -90,6 +98,15 @@ const legendItems = computed(() => {
   display: flex;
   flex-direction: column;
   gap: var(--widget-gap, 8px);
+}
+.chart-widget__body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+.chart-widget--centered .chart-widget__body {
+  flex: 1;
 }
 .chart-widget__header {
   display: flex;
