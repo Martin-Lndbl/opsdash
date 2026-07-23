@@ -232,6 +232,13 @@ export function buildStackedWithForecast(input: {
   const mode = normalizeMode(input.forecastMode)
   const todayKey = formatDateKey(new Date())
   const isFuture = labels.map((label) => DATE_KEY_RX.test(label) && label > todayKey)
+  const isToday = labels.map((label) => DATE_KEY_RX.test(label) && label === todayKey)
+  const isWeekendDay = labels.map((label) => {
+    const d = parseDateKey(String(label))
+    if (!d) return false
+    const dow = d.getUTCDay()
+    return dow === 0 || dow === 6
+  })
   const futureIndices: number[] = []
   isFuture.forEach((flag, idx) => {
     if (flag) futureIndices.push(idx)
@@ -244,7 +251,23 @@ export function buildStackedWithForecast(input: {
   const cfg = input.targetsConfig ?? createDefaultTargetsConfig()
   const targetsMap = sanitizeTargetsMap(input.currentTargets)
   const categoryAssignments = input.calendarCategoryMap ?? {}
-  const futureDays = futureIndices.length
+
+  // Divisor that matches computePaceInfo's daysLeft: count today plus each
+  // future day, dropping weekends when the caller's target excludes them.
+  // Distribute the resulting per-day pace only to future days (today already
+  // shows its actuals in the stack, no forecast overlay on top of it).
+  function daysLeftFor(includeWeekend: boolean): number {
+    let count = 0
+    labels.forEach((_, idx) => {
+      if (!isFuture[idx] && !isToday[idx]) return
+      if (!includeWeekend && isWeekendDay[idx]) return
+      count += 1
+    })
+    return count
+  }
+  function futureIndicesFor(includeWeekend: boolean): number[] {
+    return futureIndices.filter((idx) => includeWeekend || !isWeekendDay[idx])
+  }
 
   const actualByCalendar = new Map<string, number>()
   series.forEach((row) => {
@@ -266,8 +289,11 @@ export function buildStackedWithForecast(input: {
   if (mode === 'total') {
     const targetTotal = Math.max(0, Number(cfg.totalHours ?? 0))
     const remaining = Math.max(0, targetTotal - actualTotal)
-    if (remaining > 0.0001) {
-      const perDay = remaining / futureDays
+    const includeWeekend = !!(cfg as any).pace?.includeWeekendTotal
+    const denom = daysLeftFor(includeWeekend)
+    const targetsIdx = futureIndicesFor(includeWeekend)
+    if (remaining > 0.0001 && denom > 0 && targetsIdx.length) {
+      const perDay = remaining / denom
       const ids = series.map((row) => row.id)
       const weights = computeWeights(ids, actualByCalendar, targetsMap)
       ids.forEach((id) => {
@@ -275,22 +301,25 @@ export function buildStackedWithForecast(input: {
         if (weight <= 0) return
         const arr = forecastByCalendar.get(id)
         if (!arr) return
-        futureIndices.forEach((idx) => {
+        targetsIdx.forEach((idx) => {
           arr[idx] = roundHours(perDay * weight)
         })
       })
     }
   } else if (mode === 'calendar') {
+    const includeWeekend = !!(cfg as any).pace?.includeWeekendTotal
+    const denom = daysLeftFor(includeWeekend)
+    const targetsIdx = futureIndicesFor(includeWeekend)
     series.forEach((row) => {
       const target = targetsMap[row.id] ?? 0
       if (target <= 0) return
       const actual = Math.max(0, actualByCalendar.get(row.id) ?? 0)
       const remaining = Math.max(0, target - actual)
-      if (remaining <= 0.0001) return
-      const perDay = remaining / futureDays
+      if (remaining <= 0.0001 || denom <= 0 || !targetsIdx.length) return
+      const perDay = remaining / denom
       const arr = forecastByCalendar.get(row.id)
       if (!arr) return
-      futureIndices.forEach((idx) => {
+      targetsIdx.forEach((idx) => {
         arr[idx] = roundHours(perDay)
       })
     })
@@ -310,6 +339,13 @@ export function buildStackedWithForecast(input: {
       }
       calendarsByCategory.get(catId)!.push(row.id)
     })
+    // Per-category weekend policy pulled from cfg.categories; fall back to
+    // the total pace flag when a category doesn't override.
+    const includeWeekendByCat = new Map<string, boolean>()
+    categories.forEach((cat: any) => {
+      includeWeekendByCat.set(String(cat.id), !!cat.includeWeekend)
+    })
+    const fallbackIncludeWeekend = !!(cfg as any).pace?.includeWeekendTotal
     calendarsByCategory.forEach((calIds, catId) => {
       if (!calIds.length) return
       const target = categoryTargets.get(catId) ?? 0
@@ -317,7 +353,11 @@ export function buildStackedWithForecast(input: {
       const actual = calIds.reduce((sum, id) => sum + Math.max(0, actualByCalendar.get(id) ?? 0), 0)
       const remaining = Math.max(0, target - actual)
       if (remaining <= 0.0001) return
-      const perDay = remaining / futureDays
+      const includeWeekend = includeWeekendByCat.get(catId) ?? fallbackIncludeWeekend
+      const denom = daysLeftFor(includeWeekend)
+      const targetsIdx = futureIndicesFor(includeWeekend)
+      if (denom <= 0 || !targetsIdx.length) return
+      const perDay = remaining / denom
       const targetSubset: Record<string, number> = {}
       calIds.forEach((id) => {
         targetSubset[id] = targetsMap[id] ?? 0
@@ -328,23 +368,26 @@ export function buildStackedWithForecast(input: {
         if (weight <= 0) return
         const arr = forecastByCalendar.get(id)
         if (!arr) return
-        futureIndices.forEach((idx) => {
+        targetsIdx.forEach((idx) => {
           arr[idx] = roundHours(perDay * weight)
         })
         processed.add(id)
       })
     })
+    // Calendars without a category still fall back to per-calendar targets.
+    const calFallbackIndices = futureIndicesFor(fallbackIncludeWeekend)
+    const calFallbackDenom = daysLeftFor(fallbackIncludeWeekend)
     series.forEach((row) => {
       if (processed.has(row.id)) return
       const target = targetsMap[row.id] ?? 0
       if (target <= 0) return
       const actual = Math.max(0, actualByCalendar.get(row.id) ?? 0)
       const remaining = Math.max(0, target - actual)
-      if (remaining <= 0.0001) return
-      const perDay = remaining / futureDays
+      if (remaining <= 0.0001 || calFallbackDenom <= 0 || !calFallbackIndices.length) return
+      const perDay = remaining / calFallbackDenom
       const arr = forecastByCalendar.get(row.id)
       if (!arr) return
-      futureIndices.forEach((idx) => {
+      calFallbackIndices.forEach((idx) => {
         arr[idx] = roundHours(perDay)
       })
     })

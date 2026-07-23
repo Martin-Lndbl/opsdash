@@ -175,7 +175,9 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
           return
         }
         console.error(error)
-        deps.notifyError('Failed to save selection')
+        if (!silent) {
+          deps.notifyError('Failed to save selection')
+        }
       } finally {
         if (requestId === latestRequestId) {
           isSaving.value = false
