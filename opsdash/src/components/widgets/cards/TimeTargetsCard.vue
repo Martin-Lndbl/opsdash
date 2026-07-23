@@ -5,7 +5,13 @@
       <div class="targets-header__title">
         <strong>{{ title || 'Targets' }}</strong>
       </div>
-      <span class="hint" v-if="total.targetHours > 0">{{ totalDisplay.percentText }}%</span>
+      <div class="targets-header__meta" v-if="total.targetHours > 0">
+        <span class="hint">{{ totalDisplay.percentText }}%</span>
+        <span
+          v-if="totalDisplay.paceLabel"
+          :class="['status-label', totalDisplay.statusClass]"
+        >{{ totalDisplay.paceLabel }}</span>
+      </div>
     </div>
     <div v-if="neverFinishedMode" class="targets-hustle">
       <div class="targets-hustle__badge">
@@ -366,6 +372,8 @@ function colorMix(hex: string, factor = 0.5): string {
 }
 .targets-header{ display:flex; justify-content:space-between; align-items:center }
 .targets-header__title{ display:flex; align-items:center; gap:calc(6px * var(--widget-space, 1)) }
+.targets-header__meta{ display:flex; align-items:center; gap:calc(6px * var(--widget-space, 1)); flex-wrap:nowrap }
+.targets-header__meta .status-label{ padding:calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1)); border-radius:999px; font-size:calc(11px * var(--widget-scale, 1)); font-weight:700; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap }
 .targets-header strong{ font-size:var(--widget-title-size, calc(14px * var(--widget-scale, 1))) }
 .targets-main{ display:flex; flex-direction:column; gap:calc(4px * var(--widget-space, 1)); font-size:calc(13px * var(--widget-scale, 1)) }
 .targets-main .line{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)) }
