@@ -42,14 +42,6 @@ function draw() {
   const line = themeVar(cvEl, '--line', '#e5e7eb')
   const fg = themeVar(cvEl, '--fg', '#0f172a')
   ctx.clearRect(0, 0, W, H)
-  ctx.strokeStyle = line
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.moveTo(x0, y0)
-  ctx.lineTo(x1, y0)
-  ctx.moveTo(x0, y0)
-  ctx.lineTo(x0, pad)
-  ctx.stroke()
   ctx.fillStyle = fg
   ctx.font = `${12 * textScale}px ui-sans-serif,system-ui`
   const xLabel = String(props.xLabel ?? '').trim()

@@ -124,8 +124,6 @@ function draw(){
   const fg=themeVar(cvEl, '--fg', '#0f172a')
   const bg=themeVar(cvEl, '--bg', '#ffffff')
   ctx.clearRect(0,0,W,H)
-  ctx.strokeStyle=line; ctx.lineWidth=1
-  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); ctx.moveTo(x0,y0); ctx.lineTo(x0,pad); ctx.stroke()
 
   const stacked:any = props.stacked
   if (stacked && stacked.labels && stacked.series) {
