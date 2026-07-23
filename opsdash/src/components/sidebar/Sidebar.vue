@@ -461,10 +461,7 @@ function onCategoryInput(id: string, event: Event) {
     inset 0 1px 0 rgba(255, 255, 255, .45);
 }
 .hero {
-  background:
-    radial-gradient(circle at 112% -8%, color-mix(in oklab, var(--brand), transparent 82%), transparent 54%),
-    linear-gradient(180deg, color-mix(in oklab, var(--card, #fff), var(--brand) 3%), var(--card, #fff)),
-    var(--card, #fff);
+  background: var(--card, #fff);
 }
 
 .ew {
