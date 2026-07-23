@@ -70,42 +70,105 @@
         </div>
       </div>
 
-      <!-- ── Setup card ── -->
-      <div class="sc">
-        <div class="sc-hd">
+      <!-- ── Quick settings card ── -->
+      <div class="qs">
+        <div class="qs-hd">
+          <div class="ew">Quick settings</div>
+        </div>
+
+        <!-- Theme -->
+        <div class="qs-row">
+          <span class="qs-label">Theme</span>
+          <div class="seg w3">
+            <button type="button" :class="{ on: themePreference === 'auto' }" @click="$emit('update:theme-preference', 'auto')">Auto</button>
+            <button type="button" :class="{ on: themePreference === 'light' }" @click="$emit('update:theme-preference', 'light')">Light</button>
+            <button type="button" :class="{ on: themePreference === 'dark' }" @click="$emit('update:theme-preference', 'dark')">Dark</button>
+          </div>
+        </div>
+
+        <!-- Scope -->
+        <div class="qs-row">
+          <span class="qs-label">Scope</span>
+          <div class="seg w2">
+            <button type="button" :class="{ on: preferredScope === 'calendar' }" @click="preferredScope = 'calendar'">Calendar</button>
+            <button type="button" :class="{ on: preferredScope === 'category' }" @click="preferredScope = 'category'">Category</button>
+          </div>
+        </div>
+
+        <!-- Background -->
+        <div class="qs-row">
+          <span class="qs-label">Background</span>
+          <div class="qs-color">
+            <label class="qs-swatch" :title="globalAppBg || 'Follow theme'">
+              <span class="qs-swatch-dot" :class="{ 'qs-swatch-dot--none': !globalAppBg }" :style="globalAppBg ? { background: globalAppBg } : {}" />
+              <input
+                type="color"
+                :value="globalAppBg ?? '#ffffff'"
+                @input="onColorInput"
+              />
+            </label>
+            <button
+              class="qs-clear"
+              type="button"
+              :disabled="!globalAppBg"
+              @click="globalAppBg = null"
+              title="Follow theme"
+            >Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Setup card (collapsible) ── -->
+      <div class="sc" :class="{ 'sc--collapsed': !setupExpanded }">
+        <button
+          class="sc-hd sc-toggle"
+          type="button"
+          :aria-expanded="setupExpanded"
+          @click="setupExpanded = !setupExpanded"
+        >
           <div>
             <div class="ew">Guided setup</div>
-            <div class="sc-title">Dashboard profile</div>
+            <div class="sc-title">
+              <span>Setup</span>
+              <span class="sc-progress">{{ setupSummary }}</span>
+            </div>
           </div>
           <span v-if="dashboardMode === 'pro'" class="badge">Pro</span>
           <span v-else-if="dashboardMode === 'standard'" class="badge badge--std">Std</span>
-        </div>
-
-        <button class="wiz" type="button" @click="$emit('rerun-onboarding')">
-          Open setup wizard
+          <span class="sc-caret" :class="{ 'sc-caret--open': setupExpanded }" aria-hidden="true">
+            <svg viewBox="0 0 12 7" width="12" height="7" fill="none">
+              <path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
         </button>
 
-        <ol class="steps">
-          <li
-            v-for="step in STEPS"
-            :key="step.id"
-            class="step"
-            :class="guidedHintStatuses?.[step.id] ?? 'dim'"
-            @click="$emit('rerun-onboarding', step.id)"
-            role="button"
-            :title="'Go to ' + step.label"
-          >
-            <span class="sn">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
-                <path :d="step.icon" />
-              </svg>
-            </span>
-            <div class="sb-txt">
-              <strong>{{ step.label }}</strong>
-              <small>{{ guidedHints?.[step.id] || step.placeholder }}</small>
-            </div>
-          </li>
-        </ol>
+        <div v-if="setupExpanded" class="sc-body">
+          <button class="wiz" type="button" @click="$emit('rerun-onboarding')">
+            Open setup wizard
+          </button>
+
+          <ol class="steps">
+            <li
+              v-for="step in STEPS"
+              :key="step.id"
+              class="step"
+              :class="guidedHintStatuses?.[step.id] ?? 'dim'"
+              @click="$emit('rerun-onboarding', step.id)"
+              role="button"
+              :title="'Go to ' + step.label"
+            >
+              <span class="sn">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+                  <path :d="step.icon" />
+                </svg>
+              </span>
+              <div class="sb-txt">
+                <strong>{{ step.label }}</strong>
+                <small>{{ guidedHints?.[step.id] || step.placeholder }}</small>
+              </div>
+            </li>
+          </ol>
+        </div>
       </div>
 
       <!-- ── Bottom dock ── -->
@@ -145,9 +208,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { NcAppNavigation } from '@nextcloud/vue'
 import { getWeekNumber, parseDateKey } from '../../services/dateTime'
+import { preferredScope, globalAppBg } from '../../../composables/useGlobalPreferences'
 
 const MDI_LAYERS = "M12,16L19.36,10.27L21,9L12,2L3,9L4.63,10.27M12,18.54L4.62,12.81L3,14.07L12,21.07L21,14.07L19.37,12.8L12,18.54Z"
 const MDI_CALENDAR_MULTIPLE = "M21,17V8H7V17H21M21,3A2,2 0 0,1 23,5V17A2,2 0 0,1 21,19H7C5.89,19 5,18.1 5,17V5A2,2 0 0,1 7,3H8V1H10V3H18V1H20V3H21M3,21H17V23H3C1.89,23 1,22.1 1,21V9H3V21M19,15H15V11H19V15Z"
@@ -181,6 +245,7 @@ const props = defineProps<{
   releaseNotesOpen?: boolean
   lastSync?: string | null
   guidedHintStatuses?: Partial<Record<'strategy' | 'calendars' | 'deck' | 'goals' | 'preferences' | 'dashboard' | 'review', 'done' | 'warn' | 'dim' | 'skip'>>
+  themePreference?: 'auto' | 'light' | 'dark'
 }>()
 
 const emit = defineEmits([
@@ -192,6 +257,7 @@ const emit = defineEmits([
   'open-release-notes',
   'open-shortcuts',
   'rerun-onboarding',
+  'update:theme-preference',
 ])
 
 const rangeEyebrow = computed(() => props.range === 'month' ? 'This month' : 'This week')
@@ -210,6 +276,33 @@ const syncLabel = computed(() => {
   if (props.isLoading) return 'Syncing…'
   return props.lastSync ?? 'Ready'
 })
+
+// Collapsible setup card — starts expanded only when steps still need attention.
+const setupDone = computed(() => {
+  const statuses = props.guidedHintStatuses ?? {}
+  return STEPS.every((s) => {
+    const st = statuses[s.id]
+    return st === 'done' || st === 'skip'
+  })
+})
+const setupSummary = computed(() => {
+  const statuses = props.guidedHintStatuses ?? {}
+  const done = STEPS.filter((s) => statuses[s.id] === 'done' || statuses[s.id] === 'skip').length
+  return `${done} of ${STEPS.length} ready`
+})
+const setupExpanded = ref(!setupDone.value)
+watch(setupDone, (isDone, wasDone) => {
+  // Auto-collapse the first time the checklist becomes complete; leave user
+  // control after that.
+  if (isDone && !wasDone) setupExpanded.value = false
+})
+
+function onColorInput(event: Event) {
+  const value = (event.target as HTMLInputElement).value
+  if (typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)) {
+    globalAppBg.value = value
+  }
+}
 </script>
 
 <style scoped>
@@ -324,6 +417,7 @@ const syncLabel = computed(() => {
   background: rgba(0, 0, 0, .06);
 }
 .seg.w2 { grid-template-columns: 1fr 1fr; }
+.seg.w3 { grid-template-columns: 1fr 1fr 1fr; }
 
 .seg button {
   appearance: none;
@@ -435,34 +529,146 @@ const syncLabel = computed(() => {
 }
 .btn-ref:disabled { opacity: .5; cursor: default; }
 
+/* ── Quick settings card ── */
+.qs {
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 18px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--card, #fff);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, .05);
+}
+.qs-hd { display: flex; align-items: center; justify-content: space-between; }
+.qs-row {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.qs-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted, #64748b);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.qs-color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.qs-swatch {
+  position: relative;
+  width: 34px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid var(--line, #e2e8f0);
+  overflow: hidden;
+  cursor: pointer;
+  display: block;
+}
+.qs-swatch input[type=color] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+}
+.qs-swatch-dot {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 9px;
+  background: var(--card, #fff);
+}
+.qs-swatch-dot--none {
+  background:
+    linear-gradient(45deg, transparent 45%, var(--muted, #94a3b8) 45%, var(--muted, #94a3b8) 55%, transparent 55%),
+    var(--card, #fff);
+}
+.qs-clear {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted, #64748b);
+  background: transparent;
+  border: 1px solid var(--line, #e2e8f0);
+  cursor: pointer;
+  appearance: none;
+}
+.qs-clear:disabled { opacity: .4; cursor: default; }
+.qs-clear:hover:not(:disabled) { background: rgba(0, 0, 0, .04); color: var(--fg, #0f172a); }
+
 /* ── Setup card ── */
 .sc {
   border: 1px solid var(--line, #e2e8f0);
-  border-radius: 22px;
-  padding: 15px;
+  border-radius: 18px;
+  padding: 4px;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 8px;
   background: var(--card, #fff);
-  box-shadow:
-    0 10px 22px rgba(15, 23, 42, .06),
-    inset 0 1px 0 rgba(255, 255, 255, .4);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, .05);
 }
 
-.sc-hd {
+.sc-toggle {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+  border: 0;
+  background: transparent;
+  padding: 10px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
 }
+.sc-toggle:hover { background: rgba(0, 0, 0, .03); }
 
 .sc-title {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 900;
-  letter-spacing: -.035em;
+  letter-spacing: -.02em;
   line-height: 1.1;
   margin-top: 3px;
   color: var(--fg, #0f172a);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.sc-progress {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted, #64748b);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.sc-caret {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  color: var(--muted, #64748b);
+  transition: transform .18s ease;
+  flex-shrink: 0;
+}
+.sc-caret--open { transform: rotate(180deg); }
+
+.sc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 0 10px 10px;
 }
 
 .badge {
@@ -485,8 +691,8 @@ const syncLabel = computed(() => {
 
 .wiz {
   width: 100%;
-  height: 36px;
-  border-radius: 12px;
+  height: 34px;
+  border-radius: 11px;
   background: linear-gradient(135deg, var(--brand, #2563eb), color-mix(in oklab, var(--brand, #2563eb), #1d4ed8 40%));
   color: #fff;
   font-size: 12px;

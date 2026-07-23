@@ -125,9 +125,9 @@ function paintOutlinedBar(
   }
 }
 
-// Outlined stacked segment: neutral fill + a 2px left accent and a
-// 2px top color band. No side/bottom borders — segments stack tightly
-// and a full outline doubles at the seams.
+// Outlined stacked segment: neutral fill + 2px left accent, 2px right
+// accent, and a 2px top color band. Bottom is intentionally left off
+// because adjacent segments would double up on the seam.
 function paintOutlinedStackedSegment(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -140,7 +140,13 @@ function paintOutlinedStackedSegment(
   ctx.fillRect(x, y, w, h)
   const accentW = Math.min(2, w)
   ctx.fillStyle = color
+  // Left
   ctx.fillRect(x, y, accentW, h)
+  // Right
+  if (w > accentW) {
+    ctx.fillRect(x + w - accentW, y, accentW, h)
+  }
+  // Top color band
   if (h > 2) {
     const topH = Math.min(2, h)
     ctx.fillRect(x, y, w, topH)
