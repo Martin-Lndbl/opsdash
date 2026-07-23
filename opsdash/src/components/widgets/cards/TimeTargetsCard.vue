@@ -8,7 +8,7 @@
       <div class="targets-header__meta" v-if="total.targetHours > 0">
         <span class="hint">{{ totalDisplay.percentText }}%</span>
         <span
-          v-if="totalDisplay.paceLabel"
+          v-if="config.ui.badges && totalDisplay.paceLabel"
           :class="['status-label', totalDisplay.statusClass]"
         >{{ totalDisplay.paceLabel }}</span>
       </div>
@@ -49,9 +49,6 @@
           Linear {{ formatHours(summary.forecast.linear) }}h · Momentum {{ formatHours(summary.forecast.momentum) }}h · Primary: {{ methodLabel(summary.forecast.primaryMethod) }}
         </span>
       </div>
-    </div>
-    <div class="targets-badges" v-if="config.ui.badges && total.targetHours > 0">
-      <span class="badge" :class="totalDisplay.statusClass">{{ totalDisplay.badgeLabel }}</span>
     </div>
     <div class="targets-categories" v-if="config.ui.showCategoryBlocks && categoryItems.length">
       <div class="category" v-for="cat in categoryItems" :key="cat.id">
@@ -391,7 +388,6 @@ function colorMix(hex: string, factor = 0.5): string {
 .targets-hustle__icon :deep(svg),
 .targets-hustle__icon:deep(svg){ width:100%; height:auto; stroke-width:1.5 }
 .targets-hustle__scene.is-active .targets-hustle__icon{ opacity:1; transform:scale(1.02); filter:drop-shadow(0 0 8px color-mix(in srgb, #fb923c 45%, transparent)) drop-shadow(0 0 14px color-mix(in srgb, #f97316 20%, transparent)) }
-.targets-badges{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)) }
 .targets-categories{ display:flex; flex-direction:column; gap:calc(10px * var(--widget-space, 1)); padding-top:calc(6px * var(--widget-space, 1)); border-top:1px solid var(--line) }
 .category{ display:flex; flex-direction:column; gap:calc(6px * var(--widget-space, 1)); font-size:calc(12px * var(--widget-scale, 1)); padding:calc(4px * var(--widget-space, 1)) 0 }
 .category .cat-top{ display:flex; align-items:center; justify-content:space-between; gap:calc(8px * var(--widget-space, 1)) }
