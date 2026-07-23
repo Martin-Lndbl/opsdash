@@ -23,7 +23,7 @@
           :key="view"
           type="button"
           :class="{ active: activeOverviewView === view }"
-          @click="activeOverviewView = view"
+          @click="selectView(view)"
         >{{ viewLabel(view) }}</button>
       </div>
 
@@ -194,6 +194,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { formatDateOnly, formatDateRange, formatTime } from '../../../services/dateTime'
+import { preferredScope } from '../../../../composables/useGlobalPreferences'
 
 type Mode = 'active' | 'all'
 
@@ -490,6 +491,9 @@ const overviewViewInitialized = ref(false)
 const defaultOverviewView = computed<OverviewView>(() => {
   const requested = props.defaultView
   if (requested && availableViews.value.includes(requested)) return requested
+  // Follow the global scope preference when the corresponding tab is available.
+  const scoped: OverviewView = preferredScope.value === 'calendar' ? 'calendars' : 'categories'
+  if (availableViews.value.includes(scoped)) return scoped
   if (displayMode.value === 'category_and_calendar_goals' && availableViews.value.includes('categories')) return 'categories'
   if (displayMode.value === 'calendar_goals' && availableViews.value.includes('calendars')) return 'calendars'
   return 'daily'
@@ -508,6 +512,12 @@ watch(
   },
   { immediate: true },
 )
+
+function selectView(view: OverviewView) {
+  activeOverviewView.value = view
+  if (view === 'calendars') preferredScope.value = 'calendar'
+  else if (view === 'categories') preferredScope.value = 'category'
+}
 const showTabs = computed(() => availableViews.value.length > 1)
 const weekDays = computed<WeekDay[]>(() => Array.isArray(props.weekDays) ? props.weekDays : [])
 const todayWeekEntry = computed(() => weekDays.value.find((day) => day.isToday) ?? null)

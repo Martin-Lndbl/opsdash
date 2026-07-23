@@ -1,5 +1,6 @@
 import { createDefaultTargetsConfig, type ActivityForecastMode, type TargetsConfig } from '../../targets'
 import { formatDateKey, getWeekdayOrder, parseDateKey } from '../../dateTime'
+import { preferredScope } from '../../../../composables/useGlobalPreferences'
 
 type PieData = { ids: string[]; labels: string[]; data: number[]; colors?: string[] }
 type StackedData = { labels: string[]; series: Array<{ id: string; name?: string; label?: string; color?: string; data?: number[]; forecast?: number[] }> }
@@ -41,7 +42,10 @@ export function parseIdList(input: any): string[] {
 }
 
 export function normalizeChartFilterMode(input: any): ChartFilterMode {
-  return input === 'calendar' ? 'calendar' : 'category'
+  if (input === 'calendar' || input === 'category') return input
+  // No per-widget override -> follow the global preference set from
+  // TimeSummary's calendars/categories tab (or last user choice).
+  return preferredScope.value
 }
 
 export function buildChartFilterControls(options: any, ctx: any) {

@@ -4,7 +4,7 @@
   --bg:#ffffff;
   --card:#ffffff;
   --line:#e5e7eb;
-  --brand:#2563eb;
+  --brand: var(--color-primary-element, var(--color-primary, #2563eb));
   --soft:#f7f7f8;
   --pos:#16a34a;
   --neg:#ef4444;
@@ -23,7 +23,7 @@
     --bg:#0b1220;
     --card:#0f172a;
     --line:#1f2937;
-    --brand:#60a5fa;
+    --brand: var(--color-primary-element-light, var(--color-primary-element, var(--color-primary, #60a5fa)));
     --soft:#0b2942;
     --pos:#22c55e;
     --neg:#f87171;
@@ -35,7 +35,7 @@
   --bg:#ffffff;
   --card:#ffffff;
   --line:#e5e7eb;
-  --brand:#2563eb;
+  --brand: var(--color-primary-element, var(--color-primary, #2563eb));
   --soft:#f7f7f8;
   --pos:#16a34a;
   --neg:#ef4444;
@@ -54,7 +54,7 @@
   --bg:#0b1220;
   --card:#0f172a;
   --line:#1f2937;
-  --brand:#60a5fa;
+  --brand: var(--color-primary-element-light, var(--color-primary-element, var(--color-primary, #60a5fa)));
   --soft:#0b2942;
   --pos:#22c55e;
   --neg:#f87171;
