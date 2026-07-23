@@ -188,4 +188,7 @@ onBeforeUnmount(() => {
 })
 watch(() => props.data, () => draw(), { deep: true })
 watch(() => props.showLabels, () => draw())
+watch(() => props.colorStyle, () => draw())
+watch(() => props.colorTint, () => draw())
+
 </script>

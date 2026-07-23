@@ -393,6 +393,8 @@ watch(()=>props.stacked, ()=> draw(), { deep:true })
 watch(()=>props.colorsById, ()=> draw(), { deep:true })
 watch(()=>props.showLabels, ()=> draw())
 watch(()=>props.highlightId, ()=> draw())
+watch(()=>props.colorStyle, ()=> draw())
+watch(()=>props.colorTint, ()=> draw())
 
 function onMouseMove(event: MouseEvent) {
   const cvEl = cv.value
