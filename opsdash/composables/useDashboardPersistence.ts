@@ -37,6 +37,8 @@ interface DashboardPersistenceDeps {
   activePreset?: Ref<string | null>
   preferredScope?: Ref<ScopePreference>
   globalAppBg?: Ref<string | null>
+  globalAppBgLight?: Ref<string | null>
+  globalAppBgDark?: Ref<string | null>
 }
 
 export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
@@ -86,6 +88,12 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
         }
         if (deps.globalAppBg) {
           payload.global_app_bg = deps.globalAppBg.value ?? null
+        }
+        if (deps.globalAppBgLight) {
+          payload.global_app_bg_light = deps.globalAppBgLight.value ?? null
+        }
+        if (deps.globalAppBgDark) {
+          payload.global_app_bg_dark = deps.globalAppBgDark.value ?? null
         }
         const result = await deps.postJson(deps.route('persist'), payload)
         if (requestId !== latestRequestId) {
@@ -150,6 +158,22 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
             deps.globalAppBg.value = null
           }
         }
+        const applyBgSlot = (slot: Ref<string | null> | undefined, raw: unknown) => {
+          if (!slot) return
+          if (typeof raw === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw)) {
+            slot.value = raw
+          } else if (raw === null) {
+            slot.value = null
+          }
+        }
+        applyBgSlot(
+          deps.globalAppBgLight,
+          result.global_app_bg_light_read ?? result.global_app_bg_light_saved,
+        )
+        applyBgSlot(
+          deps.globalAppBgDark,
+          result.global_app_bg_dark_read ?? result.global_app_bg_dark_saved,
+        )
         if (deps.onboardingState) {
           const nextOnboarding = result.onboarding_read ?? result.onboarding_saved
           if (nextOnboarding && typeof nextOnboarding === 'object') {

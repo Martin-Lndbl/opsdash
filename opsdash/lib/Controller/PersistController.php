@@ -222,6 +222,25 @@ final class PersistController extends Controller {
         }
         $bgRaw = (string)$this->config->getUserValue($uid, $this->appName, 'global_app_bg', '');
         $globalAppBgRead = (is_string($bgRaw) && preg_match('/^#[0-9a-fA-F]{6}$/', $bgRaw) === 1) ? $bgRaw : null;
+        $globalAppBgLightSaved = null;
+        $globalAppBgDarkSaved = null;
+        foreach (['global_app_bg_light', 'global_app_bg_dark'] as $slotKey) {
+            if (array_key_exists($slotKey, $data)) {
+                $val = $data[$slotKey];
+                if (is_string($val) && preg_match('/^#[0-9a-fA-F]{6}$/', $val) === 1) {
+                    $this->config->setUserValue($uid, $this->appName, $slotKey, $val);
+                    if ($slotKey === 'global_app_bg_light') $globalAppBgLightSaved = $val;
+                    else $globalAppBgDarkSaved = $val;
+                } else {
+                    try { $this->config->deleteUserValue($uid, $this->appName, $slotKey); } catch (\Throwable) {}
+                }
+                $didMutate = true;
+            }
+        }
+        $bgLightRaw = (string)$this->config->getUserValue($uid, $this->appName, 'global_app_bg_light', '');
+        $globalAppBgLightRead = (is_string($bgLightRaw) && preg_match('/^#[0-9a-fA-F]{6}$/', $bgLightRaw) === 1) ? $bgLightRaw : null;
+        $bgDarkRaw = (string)$this->config->getUserValue($uid, $this->appName, 'global_app_bg_dark', '');
+        $globalAppBgDarkRead = (is_string($bgDarkRaw) && preg_match('/^#[0-9a-fA-F]{6}$/', $bgDarkRaw) === 1) ? $bgDarkRaw : null;
         if (isset($data['widgets'])) {
             $cleanWidgets = $this->persistSanitizer->sanitizeWidgets($data['widgets']);
             if ($resp = $this->writeUserJsonValue($uid, 'widgets_layout', $cleanWidgets, 'widgets')) {
@@ -282,6 +301,10 @@ final class PersistController extends Controller {
             'preferred_scope_read' => $preferredScopeRead,
             'global_app_bg_saved' => $globalAppBgSaved,
             'global_app_bg_read' => $globalAppBgRead,
+            'global_app_bg_light_saved' => $globalAppBgLightSaved,
+            'global_app_bg_light_read' => $globalAppBgLightRead,
+            'global_app_bg_dark_saved' => $globalAppBgDarkSaved,
+            'global_app_bg_dark_read' => $globalAppBgDarkRead,
         ], Http::STATUS_OK);
     }
 

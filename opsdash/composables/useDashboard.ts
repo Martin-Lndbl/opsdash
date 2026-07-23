@@ -14,7 +14,7 @@ import {
 } from '../src/services/reporting'
 import { normalizeWidgetTabs, type WidgetTabsState } from '../src/services/widgetsRegistry'
 import { createDefaultWidgetTabs, setWidgetPresets } from '../src/services/widgetDefaults'
-import { preferredScope, globalAppBg } from './useGlobalPreferences'
+import { preferredScope, globalAppBg, globalAppBgLight, globalAppBgDark } from './useGlobalPreferences'
 import { readBootstrapThemePreference } from '../src/services/theme'
 import { readCurrentUserId } from '../src/services/currentUser'
 import { setUserDateTimeConfig } from '../src/services/dateTime'
@@ -260,11 +260,30 @@ export function useDashboard(deps: DashboardDeps) {
         if (json.preferredScope === 'calendar' || json.preferredScope === 'category') {
           preferredScope.value = json.preferredScope
         }
-        if (typeof json.globalAppBg === 'string' && /^#[0-9a-fA-F]{6}$/.test(json.globalAppBg)) {
-          globalAppBg.value = json.globalAppBg
-        } else if (json.globalAppBg === null) {
-          globalAppBg.value = null
+        const hexRe = /^#[0-9a-fA-F]{6}$/
+        const legacyBg = typeof json.globalAppBg === 'string' && hexRe.test(json.globalAppBg)
+          ? json.globalAppBg
+          : (json.globalAppBg === null ? null : undefined)
+        const lightRaw = typeof json.globalAppBgLight === 'string' && hexRe.test(json.globalAppBgLight)
+          ? json.globalAppBgLight
+          : (json.globalAppBgLight === null ? null : undefined)
+        const darkRaw = typeof json.globalAppBgDark === 'string' && hexRe.test(json.globalAppBgDark)
+          ? json.globalAppBgDark
+          : (json.globalAppBgDark === null ? null : undefined)
+        // Per-theme slots take precedence; the legacy single-value field
+        // seeds any slot that wasn't sent so upgrades keep the color the
+        // user picked in whichever theme they were in.
+        if (lightRaw !== undefined) {
+          globalAppBgLight.value = lightRaw
+        } else if (legacyBg !== undefined) {
+          globalAppBgLight.value = legacyBg
         }
+        if (darkRaw !== undefined) {
+          globalAppBgDark.value = darkRaw
+        } else if (legacyBg !== undefined) {
+          globalAppBgDark.value = legacyBg
+        }
+        void globalAppBg
 
         if (deps.isDebug?.()) {
           console.group('[opsdash] calendars/colors')

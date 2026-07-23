@@ -1,8 +1,8 @@
 #opsdash{
   --fg:#0f172a;
   --muted:#475569;
-  --bg:#ffffff;
-  --card:#ffffff;
+  --bg:#efefef;
+  --card:#efefef;
   --line:#e5e7eb;
   --brand: var(--color-primary, var(--color-primary-element, var(--primary-color, #2563eb)));
   --soft:#f7f7f8;
@@ -21,7 +21,7 @@
     --fg:#e5e7eb;
     --muted:#94a3b8;
     --bg:#111111;
-    --card:#0f172a;
+    --card:#111111;
     --line:#1f2937;
     --brand: color-mix(in oklab, var(--color-primary-element-light, var(--color-primary, var(--color-primary-element, var(--primary-color, #60a5fa)))), white 20%);
     --soft:#0b2942;
@@ -32,8 +32,8 @@
 #opsdash.opsdash-theme-light{
   --fg:#0f172a;
   --muted:#475569;
-  --bg:#ffffff;
-  --card:#ffffff;
+  --bg:#efefef;
+  --card:#efefef;
   --line:#e5e7eb;
   --brand: var(--color-primary, var(--color-primary-element, var(--primary-color, #2563eb)));
   --soft:#f7f7f8;
@@ -52,7 +52,7 @@
   --fg:#e5e7eb;
   --muted:#94a3b8;
   --bg:#111111;
-  --card:#0f172a;
+  --card:#111111;
   --line:#1f2937;
   /* Guarantee brand stays light-enough on dark surfaces even when NC's
      --color-primary is a dark hue (typical for light-theme users). */
@@ -75,7 +75,7 @@
   overflow-x:clip;
 }
 #opsdash.opsdash-theme-light{
-  background:#ffffff;
+  background:#efefef;
 }
 #content.app-opsdash{
   max-width:none;
@@ -416,6 +416,14 @@
     0 8px 20px color-mix(in oklab, var(--fg, #0f172a) 10%, transparent);
   font-size:var(--widget-font, 14px);
   transition:box-shadow .18s ease;
+}
+/* When the user has picked a custom app background, drop the
+   brand-tinted radial overlay from widget cards so the chosen
+   color actually shows through instead of reading as a bluish
+   default fill. */
+#opsdash.has-app-bg .card,
+#opsdash.has-app-bg .balance-card{
+  background-image:none;
 }
 #opsdash .card:hover,
 #opsdash .balance-card:hover{

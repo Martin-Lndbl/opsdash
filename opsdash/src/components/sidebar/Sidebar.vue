@@ -99,11 +99,11 @@
         <div class="qs-row">
           <span class="qs-label">Background</span>
           <div class="qs-color">
-            <label class="qs-swatch" :title="globalAppBg || 'Follow theme'">
-              <span class="qs-swatch-dot" :class="{ 'qs-swatch-dot--none': !globalAppBg }" :style="globalAppBg ? { background: globalAppBg } : {}" />
+            <label class="qs-swatch" :title="globalAppBg || defaultAppBg + ' (theme default)'">
+              <span class="qs-swatch-dot" :class="{ 'qs-swatch-dot--none': !globalAppBg }" :style="{ background: globalAppBg || defaultAppBg }" />
               <input
                 type="color"
-                :value="globalAppBg ?? '#ffffff'"
+                :value="globalAppBg ?? defaultAppBg"
                 @input="onColorInput"
               />
             </label>
@@ -369,7 +369,9 @@
 import { computed, ref, watch } from 'vue'
 import { NcAppNavigation } from '@nextcloud/vue'
 import { getWeekNumber, parseDateKey } from '../../services/dateTime'
-import { preferredScope, globalAppBg } from '../../../composables/useGlobalPreferences'
+import { preferredScope, globalAppBg, activeThemeMode } from '../../../composables/useGlobalPreferences'
+
+const defaultAppBg = computed(() => (activeThemeMode.value === 'dark' ? '#111111' : '#efefef'))
 import type { TargetCategoryConfig, TargetsConfig } from '../../services/targets'
 import ColorPickerPopover from '../ColorPickerPopover.vue'
 
@@ -712,19 +714,20 @@ function onCategoryColor(id: string, color: string) {
 
 /* Dark-mode-only: put a tasteful gradient sheen back on every sidebar
    card. Light mode stays flat because the same treatment reads as a
-   muddy grey wash there. */
-:global(#opsdash.opsdash-theme-dark) .hero {
+   muddy grey wash there. Skipped entirely when the user has picked a
+   custom app bg so the chosen color paints the sidebar cleanly. */
+:global(#opsdash.opsdash-theme-dark:not(.has-app-bg)) .hero {
   background:
     radial-gradient(circle at 120% -10%, color-mix(in oklab, var(--brand), transparent 76%), transparent 52%),
     linear-gradient(180deg, color-mix(in oklab, var(--card), var(--brand) 6%), var(--card));
 }
-:global(#opsdash.opsdash-theme-dark) .qs,
-:global(#opsdash.opsdash-theme-dark) .ge,
-:global(#opsdash.opsdash-theme-dark) .sc {
+:global(#opsdash.opsdash-theme-dark:not(.has-app-bg)) .qs,
+:global(#opsdash.opsdash-theme-dark:not(.has-app-bg)) .ge,
+:global(#opsdash.opsdash-theme-dark:not(.has-app-bg)) .sc {
   background:
     linear-gradient(180deg, color-mix(in oklab, var(--card), var(--brand) 4%), var(--card));
 }
-:global(#opsdash.opsdash-theme-dark) .dock {
+:global(#opsdash.opsdash-theme-dark:not(.has-app-bg)) .dock {
   background:
     radial-gradient(circle at 50% -30%, color-mix(in oklab, var(--brand), transparent 82%), transparent 62%),
     linear-gradient(180deg, color-mix(in oklab, var(--card), var(--brand) 3%), color-mix(in oklab, var(--card), var(--fg) 4%));
@@ -1381,6 +1384,9 @@ function onCategoryColor(id: string, color: string) {
   box-shadow:
     0 10px 24px color-mix(in oklab, var(--fg, #0f172a) 6%, transparent),
     inset 0 1px 0 color-mix(in oklab, var(--card, #fff) 40%, transparent);
+}
+:global(#opsdash.has-app-bg) .dock {
+  background: var(--card, #fff);
 }
 
 .dk-btn {

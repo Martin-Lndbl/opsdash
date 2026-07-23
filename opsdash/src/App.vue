@@ -1,5 +1,5 @@
 <template>
-  <div id="opsdash" class="opsdash" :class="[{ 'is-nav-collapsed': !navOpen }, opsdashThemeClass]" :style="opsdashRootStyle">
+  <div id="opsdash" class="opsdash" :class="[{ 'is-nav-collapsed': !navOpen, 'has-app-bg': hasCustomAppBg }, opsdashThemeClass]" :style="opsdashRootStyle">
     <OnboardingWizard
       :key="onboardingRunId"
       :visible="onboardingWizardVisible"
@@ -583,7 +583,7 @@ import AddWidgetModal from './components/layout/AddWidgetModal.vue'
 import WidgetOptionsMenu from './components/layout/WidgetOptionsMenu.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
 import { normalizeReportingConfig, normalizeDeckSettings, type DeckFilterMode } from './services/reporting'
-import { globalAppBg, preferredScope } from '../composables/useGlobalPreferences'
+import { globalAppBg, globalAppBgLight, globalAppBgDark, activeThemeMode, preferredScope } from '../composables/useGlobalPreferences'
 import { ONBOARDING_VERSION, getStrategyDefinitions } from './services/onboarding'
 import {
   createDefaultWidgetTabs,
@@ -1107,6 +1107,7 @@ const {
 const opsdashThemeClass = computed(() =>
   effectiveTheme.value === 'dark' ? 'opsdash-theme-dark' : 'opsdash-theme-light',
 )
+const hasCustomAppBg = computed(() => !!globalAppBg.value)
 const opsdashRootStyle = computed(() => {
   const bg = globalAppBg.value
   if (!bg) return {}
@@ -1156,17 +1157,27 @@ const { queueSave, isSaving: reportingSaving } = useDashboardPersistence({
   activePreset: activePresetRef,
   preferredScope,
   globalAppBg,
+  globalAppBgLight,
+  globalAppBgDark,
 })
 
 widgetsQueueSaveRef.value = queueSave
 
-// Persist global preferences (preferredScope, globalAppBg) whenever they
-// change. The initial load will set them from the server payload; a guard
-// prevents that initial write from bouncing back as a redundant save.
-// Silent flag suppresses the "Selection saved" toast — the user hits the
-// scope tab / color picker rapidly and doesn't need a confirmation for
-// each tick.
-watch([preferredScope, globalAppBg], () => {
+// Keep activeThemeMode in sync with the effective theme so the
+// globalAppBg computed alias routes reads/writes to the right slot.
+watch(
+  effectiveTheme,
+  (val) => { activeThemeMode.value = val === 'dark' ? 'dark' : 'light' },
+  { immediate: true },
+)
+
+// Persist global preferences (preferredScope, per-theme globalAppBg)
+// whenever they change. The initial load will set them from the server
+// payload; a guard prevents that initial write from bouncing back as a
+// redundant save. Silent flag suppresses the "Selection saved" toast —
+// the user hits the scope tab / color picker rapidly and doesn't need
+// a confirmation for each tick.
+watch([preferredScope, globalAppBgLight, globalAppBgDark], () => {
   if (!hasInitialLoad.value) return
   queueSave(false, true)
 })
