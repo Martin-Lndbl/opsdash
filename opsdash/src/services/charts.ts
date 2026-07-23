@@ -71,9 +71,9 @@ function mixToward(rgb: RgbColor, target: number, ratio: number): string {
   return `rgb(${r}, ${g}, ${b})`
 }
 
-// Paint a rectangular bar with a subtle vertical gradient + top shine.
-// Mirrors the look of TimeSummary's week bars so other bar charts feel
-// consistent rather than reading as flat calendar-color slabs.
+// Paint a rectangular bar with a single top-lighter accent, matching
+// the TimeSummary week bars: linear gradient from ~18% white lightening
+// at the top down to the base color. No dark bottom, no shine band.
 export function paintPolishedBar(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -86,23 +86,99 @@ export function paintPolishedBar(
     return
   }
   const rgb = parseColorString(color) ?? { r: 147, g: 197, b: 253 }
-  const light = mixToward(rgb, 255, 0.24)
+  const light = mixToward(rgb, 255, 0.18)
   const base = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
-  const dark = mixToward(rgb, 0, 0.14)
   const grad = ctx.createLinearGradient(0, y, 0, y + h)
   grad.addColorStop(0, light)
-  grad.addColorStop(0.55, base)
-  grad.addColorStop(1, dark)
+  grad.addColorStop(1, base)
   ctx.fillStyle = grad
   ctx.fillRect(x, y, w, h)
-  if (h > 3) {
-    const shineHeight = Math.min(h, 6)
-    const shine = ctx.createLinearGradient(0, y, 0, y + shineHeight)
-    shine.addColorStop(0, 'rgba(255,255,255,0.28)')
-    shine.addColorStop(1, 'rgba(255,255,255,0)')
-    ctx.fillStyle = shine
-    ctx.fillRect(x, y, w, shineHeight)
-  }
+}
+
+// Fill a pie slice with a subtle radial highlight at the inner edge —
+// same "color accent" language as the bars: base color plus a small
+// lift near the center, no heavy gradients.
+export function paintPolishedSlice(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  r: number,
+  startAngle: number,
+  endAngle: number,
+  color: string,
+): void {
+  if (r <= 0) return
+  const rgb = parseColorString(color) ?? { r: 147, g: 197, b: 253 }
+  const light = mixToward(rgb, 255, 0.22)
+  const base = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
+  grad.addColorStop(0, light)
+  grad.addColorStop(0.65, base)
+  grad.addColorStop(1, base)
+  ctx.fillStyle = grad
+  ctx.beginPath()
+  ctx.moveTo(cx, cy)
+  ctx.arc(cx, cy, r, startAngle, endAngle)
+  ctx.closePath()
+  ctx.fill()
+}
+
+// Small floating tooltip painted onto a chart canvas near the cursor.
+// Clamped to stay inside the canvas box.
+export function drawChartTooltip(
+  ctx: CanvasRenderingContext2D,
+  opts: {
+    cursorX: number
+    cursorY: number
+    canvasWidth: number
+    canvasHeight: number
+    text: string
+    bg: string
+    fg: string
+    scale?: number
+  },
+): void {
+  const scale = Math.max(0.8, Number(opts.scale) || 1)
+  const fontSize = 11 * scale
+  const padX = 8 * scale
+  const padY = 5 * scale
+  ctx.save()
+  ctx.font = `${fontSize}px ui-sans-serif,system-ui`
+  const tw = ctx.measureText(opts.text).width
+  const w = tw + padX * 2
+  const h = fontSize + padY * 2
+  const margin = 6
+  let bx = opts.cursorX + 12
+  let by = opts.cursorY - h - 12
+  if (bx + w + margin > opts.canvasWidth) bx = opts.cursorX - w - 12
+  if (bx < margin) bx = margin
+  if (by < margin) by = opts.cursorY + 16
+  if (by + h + margin > opts.canvasHeight) by = opts.canvasHeight - h - margin
+  const r = 6
+  ctx.beginPath()
+  ctx.moveTo(bx + r, by)
+  ctx.lineTo(bx + w - r, by)
+  ctx.quadraticCurveTo(bx + w, by, bx + w, by + r)
+  ctx.lineTo(bx + w, by + h - r)
+  ctx.quadraticCurveTo(bx + w, by + h, bx + w - r, by + h)
+  ctx.lineTo(bx + r, by + h)
+  ctx.quadraticCurveTo(bx, by + h, bx, by + h - r)
+  ctx.lineTo(bx, by + r)
+  ctx.quadraticCurveTo(bx, by, bx + r, by)
+  ctx.closePath()
+  ctx.shadowColor = 'rgba(0,0,0,0.16)'
+  ctx.shadowBlur = 8
+  ctx.shadowOffsetY = 2
+  ctx.fillStyle = opts.bg
+  ctx.fill()
+  ctx.shadowColor = 'transparent'
+  ctx.shadowBlur = 0
+  ctx.shadowOffsetY = 0
+  ctx.fillStyle = opts.fg
+  ctx.textBaseline = 'middle'
+  ctx.textAlign = 'left'
+  ctx.fillText(opts.text, bx + padX, by + h / 2)
+  ctx.restore()
 }
 
 // Muted paper → steel gradient for heatmap cells
