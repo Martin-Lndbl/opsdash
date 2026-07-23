@@ -298,35 +298,42 @@
 
                     <div class="vsep" />
 
-                    <!-- Color group — GLOBAL, always available in edit mode. -->
+                    <!-- Color group — controls the selected widget if any,
+                         otherwise the global app background. -->
                     <div class="ic-group" :class="{ open: inlineGroupOpen === 'color' }">
-                      <button class="ic ic-group__trigger" type="button" :class="{ on: inlineGroupOpen === 'color' }" title="App background color (applies to every widget by default)" @click="toggleInlineGroup('color')">
-                        <span class="ic-color-dot" :class="{ 'ic-color-dot--none': !globalAppBg }" :style="globalAppBg ? { background: globalAppBg } : {}" />
+                      <button
+                        class="ic ic-group__trigger"
+                        type="button"
+                        :class="{ on: inlineGroupOpen === 'color' }"
+                        :title="colorPickerTitle"
+                        @click="toggleInlineGroup('color')"
+                      >
+                        <span class="ic-color-dot" :class="{ 'ic-color-dot--none': !activeColorValue }" :style="activeColorValue ? { background: activeColorValue } : {}" />
                         <span class="ic-lbl">Color</span>
                       </button>
                       <div v-if="inlineGroupOpen === 'color'" class="ic-group__rail ic-group__rail--color">
                         <button
                           type="button"
                           class="ic-color-swatch ic-color-reset"
-                          :class="{ on: !globalAppBg }"
-                          title="Follow theme"
-                          @click.stop="setGlobalAppBg(null)"
+                          :class="{ on: !activeColorValue }"
+                          :title="inlineSelectedItem ? 'Follow global' : 'Follow theme'"
+                          @click.stop="setActiveColor(null)"
                         />
                         <button
                           v-for="color in CARD_BG_PALETTE"
                           :key="color"
                           type="button"
                           class="ic-color-swatch"
-                          :class="{ on: globalAppBg?.toUpperCase() === color.toUpperCase() }"
+                          :class="{ on: activeColorValue?.toUpperCase() === color.toUpperCase() }"
                           :style="{ background: color }"
                           :title="color"
-                          @click.stop="setGlobalAppBg(color)"
+                          @click.stop="setActiveColor(color)"
                         />
                         <label class="ic-color-custom" title="Custom color">
                           <input
                             type="color"
-                            :value="globalAppBg ?? '#ffffff'"
-                            @change.stop="(e) => setGlobalAppBg((e.target as HTMLInputElement).value)"
+                            :value="activeColorValue ?? '#ffffff'"
+                            @change.stop="(e) => setActiveColor((e.target as HTMLInputElement).value)"
                           />
                         </label>
                       </div>
@@ -1905,8 +1912,29 @@ function setGlobalAppBg(value: string | null) {
   globalAppBg.value = value
   inlineGroupOpen.value = null
 }
+// When a widget is selected the color picker adjusts that widget's cardBg;
+// otherwise it drives the global app background.
+const activeColorValue = computed(() =>
+  inlineSelectedItem.value ? (selectedCardBg.value ?? null) : globalAppBg.value,
+)
+const colorPickerTitle = computed(() =>
+  inlineSelectedItem.value
+    ? 'Widget background color'
+    : 'App background color (applies to every widget by default)',
+)
+function setActiveColor(value: string | null) {
+  if (inlineSelectedItem.value) {
+    setSelectedOption('cardBg', value)
+  } else {
+    globalAppBg.value = value
+  }
+  inlineGroupOpen.value = null
+}
 function toggleInlineGroup(group: 'width' | 'height' | 'scale' | 'color') {
-  if (!inlineSelectedItem.value) return
+  // The color group is available whether or not a widget is selected
+  // (falls back to the global app background). Other groups still
+  // require a selected widget.
+  if (group !== 'color' && !inlineSelectedItem.value) return
   inlineGroupOpen.value = inlineGroupOpen.value === group ? null : group
 }
 
