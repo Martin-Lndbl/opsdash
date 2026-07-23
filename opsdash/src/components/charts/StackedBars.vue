@@ -12,10 +12,10 @@ const props = defineProps<{ stacked?: any, colorsById: Record<string,string>, sh
 const cv = ref<HTMLCanvasElement|null>(null)
 let ro: ResizeObserver | null = null
 let mo: MutationObserver | null = null
-let geometry: { segments: Array<{ x: number; y: number; width: number; height: number; id: string; label: string; value: number }> } | null = null
+let geometry: { segments: Array<{ x: number; y: number; width: number; height: number; id: string; label: string; value: number; forecast?: boolean }> } | null = null
 const hoverId = ref<string | null>(null)
 const hoverPos = ref<{ x: number; y: number } | null>(null)
-let hoverInfo: { label: string; value: number } | null = null
+let hoverInfo: { label: string; value: number; forecast?: boolean } | null = null
 
 function drawOutlinedText(
   ctx: CanvasRenderingContext2D,
@@ -129,7 +129,7 @@ function draw(){
 
   const stacked:any = props.stacked
   if (stacked && stacked.labels && stacked.series) {
-    const segments: Array<{ x: number; y: number; width: number; height: number; id: string; label: string; value: number }> = []
+    const segments: Array<{ x: number; y: number; width: number; height: number; id: string; label: string; value: number; forecast?: boolean }> = []
     let labels:string[] = stacked.labels||[]
     let series:any[] = stacked.series||[]
     // Reorder to start with the user's week start if labels represent a 7-day week
@@ -251,6 +251,16 @@ function draw(){
           variant: colActual > 0.01 ? 'mixed' : 'future',
           alphaScale: isDim ? 0.25 : 1,
         })
+        segments.push({
+          x,
+          y: yForecast,
+          width: bw,
+          height: hf,
+          id,
+          label: String(s.name ?? s.label ?? id),
+          value: vf,
+          forecast: true,
+        })
       })
       if (props.showLabels !== false && segmentLabels.length) {
         const spacing = 12 * textScale
@@ -329,12 +339,15 @@ function draw(){
     }
     geometry = { segments }
     if (hoverInfo && hoverPos.value) {
+      const tooltipText = hoverInfo.forecast
+        ? `${hoverInfo.label}: ~${hoverInfo.value.toFixed(1)}h (forecast)`
+        : `${hoverInfo.label}: ${hoverInfo.value.toFixed(1)}h`
       drawChartTooltip(ctx, {
         cursorX: hoverPos.value.x,
         cursorY: hoverPos.value.y,
         canvasWidth: W,
         canvasHeight: H,
-        text: `${hoverInfo.label}: ${hoverInfo.value.toFixed(1)}h`,
+        text: tooltipText,
         bg: bg,
         fg: fg,
         scale: textScale,
@@ -387,12 +400,12 @@ function onMouseMove(event: MouseEvent) {
   const x = event.clientX - rect.left
   const y = event.clientY - rect.top
   let nextId: string | null = null
-  let nextInfo: { label: string; value: number } | null = null
+  let nextInfo: { label: string; value: number; forecast?: boolean } | null = null
   for (let i = geometry.segments.length - 1; i >= 0; i -= 1) {
     const seg = geometry.segments[i]
     if (x >= seg.x && x <= seg.x + seg.width && y >= seg.y && y <= seg.y + seg.height) {
       nextId = seg.id
-      nextInfo = { label: seg.label, value: seg.value }
+      nextInfo = { label: seg.label, value: seg.value, forecast: seg.forecast }
       break
     }
   }
