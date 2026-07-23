@@ -411,9 +411,7 @@
   border:0;
   border-radius:calc(var(--opsdash-radius) * var(--widget-space, 1));
   padding:var(--widget-pad, 16px);
-  box-shadow:
-    inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 40%, transparent),
-    0 8px 20px color-mix(in oklab, var(--fg, #0f172a) 10%, transparent);
+  box-shadow:inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 40%, transparent);
   font-size:var(--widget-font, 14px);
   transition:box-shadow .18s ease;
 }
@@ -427,9 +425,7 @@
 }
 #opsdash .card:hover,
 #opsdash .balance-card:hover{
-  box-shadow:
-    inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 65%, transparent),
-    0 10px 26px color-mix(in oklab, var(--fg, #0f172a) 14%, transparent);
+  box-shadow:inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 65%, transparent);
 }
 
 /* Unified header treatment — subtle, no shouting */

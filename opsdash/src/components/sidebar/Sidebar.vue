@@ -949,18 +949,13 @@ const onCategoryLabelCommit = (id: string, v: string) => {
 .ge-cats {
   display: flex;
   flex-direction: column;
-  gap: 6px;
 }
 .ge-catcard {
-  border: 1px solid color-mix(in oklab, var(--fg, #0f172a) 8%, transparent);
-  border-radius: 12px;
-  background: color-mix(in oklab, var(--card, #fff) 92%, var(--fg, #0f172a) 4%);
-  padding: 4px;
+  padding: 6px 4px;
+  border-bottom: 1px solid color-mix(in oklab, var(--fg, #0f172a) 6%, transparent);
 }
-.ge-catcard--open {
-  border-color: color-mix(in oklab, var(--brand, #2563eb) 30%, transparent);
-  box-shadow: 0 4px 10px color-mix(in oklab, var(--brand, #2563eb) 8%, transparent);
-}
+.ge-catcard:last-child { border-bottom: 0; }
+.ge-catcard--open { background: color-mix(in oklab, var(--brand, #2563eb) 5%, transparent); }
 .ge-catcard__head {
   display: flex;
   flex-direction: column;
@@ -988,24 +983,23 @@ const onCategoryLabelCommit = (id: string, v: string) => {
 .ge-catlabel {
   min-width: 0;
   width: 100%;
-  height: 26px;
-  border: 1px solid color-mix(in oklab, var(--fg, #0f172a) 8%, transparent);
+  height: 24px;
+  border: 1px solid transparent;
   border-radius: 8px;
-  background: color-mix(in oklab, var(--card, #fff) 92%, var(--fg, #0f172a) 3%);
-  padding: 0 8px;
-  font-size: 12px;
+  background: transparent;
+  padding: 0 6px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--fg, #0f172a);
   cursor: text;
 }
 .ge-catlabel:hover {
-  border-color: color-mix(in oklab, var(--fg, #0f172a) 18%, transparent);
+  border-color: color-mix(in oklab, var(--fg, #0f172a) 12%, transparent);
 }
 .ge-catlabel:focus {
   outline: none;
   border-color: color-mix(in oklab, var(--brand, #2563eb) 45%, transparent);
-  background: var(--card, #fff);
-  box-shadow: 0 0 0 2px color-mix(in oklab, var(--brand, #2563eb) 18%, transparent);
+  background: color-mix(in oklab, var(--card, #fff) 96%, var(--fg, #0f172a) 3%);
 }
 .ge-catlabel::placeholder {
   color: var(--muted, #64748b);
@@ -1016,9 +1010,9 @@ const onCategoryLabelCommit = (id: string, v: string) => {
   align-items: center;
   gap: 4px;
   height: 22px;
-  padding: 0 8px;
+  padding: 0 6px;
   border-radius: 999px;
-  border: 1px solid var(--line, #e2e8f0);
+  border: 0;
   background: transparent;
   color: var(--muted, #64748b);
   font-size: 11px;
@@ -1026,10 +1020,7 @@ const onCategoryLabelCommit = (id: string, v: string) => {
   cursor: pointer;
   appearance: none;
 }
-.ge-catcard__toggle:hover {
-  color: var(--fg, #0f172a);
-  background: color-mix(in oklab, var(--fg, #0f172a) 4%, transparent);
-}
+.ge-catcard__toggle:hover { color: var(--fg, #0f172a); }
 .ge-catcard__count { font-variant-numeric: tabular-nums; }
 .ge-caret { transition: transform .18s ease; }
 .ge-caret--open { transform: rotate(180deg); }
@@ -1070,20 +1061,16 @@ const onCategoryLabelCommit = (id: string, v: string) => {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 26px;
-  padding: 0 8px;
-  border-radius: 8px;
-  border: 1px dashed color-mix(in oklab, var(--fg, #0f172a) 18%, transparent);
+  height: 22px;
+  padding: 0 6px;
+  border: 0;
   color: var(--muted, #64748b);
   font-size: 11px;
   font-weight: 800;
   cursor: pointer;
   position: relative;
 }
-.ge-add-cal:hover {
-  color: var(--brand, #2563eb);
-  border-color: color-mix(in oklab, var(--brand, #2563eb) 40%, transparent);
-}
+.ge-add-cal:hover { color: var(--brand, #2563eb); }
 .ge-add-cal select {
   position: absolute;
   inset: 0;
@@ -1097,19 +1084,18 @@ const onCategoryLabelCommit = (id: string, v: string) => {
 }
 .ge-add {
   width: 100%;
-  height: 28px;
-  border-radius: 10px;
-  border: 1px dashed color-mix(in oklab, var(--brand, #2563eb) 40%, transparent);
+  height: 26px;
+  border: 0;
   background: transparent;
   color: var(--brand, #2563eb);
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
   appearance: none;
+  text-align: left;
+  padding: 0 4px;
 }
-.ge-add:hover {
-  background: color-mix(in oklab, var(--brand, #2563eb) 10%, transparent);
-}
+.ge-add:hover { text-decoration: underline; }
 .ge-input {
   display: flex;
   align-items: center;
@@ -1119,6 +1105,14 @@ const onCategoryLabelCommit = (id: string, v: string) => {
   padding: 2px 8px;
   background: var(--card, #fff);
   min-width: 0;
+}
+.ge-input--sm {
+  border-color: transparent;
+  background: transparent;
+}
+.ge-input--sm:focus-within {
+  border-color: color-mix(in oklab, var(--brand, #2563eb) 40%, transparent);
+  background: color-mix(in oklab, var(--card, #fff) 96%, var(--fg, #0f172a) 3%);
 }
 .ge-input input[type="number"] {
   width: 56px;
