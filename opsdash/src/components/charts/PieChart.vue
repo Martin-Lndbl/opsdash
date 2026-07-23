@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ctxFor, drawChartTooltip, paintPolishedSlice, themeVar, tint, invert } from '../../services/charts'
-import { globalAppBg } from '../../../composables/useGlobalPreferences'
+import { globalAppBg, activeThemeMode } from '../../../composables/useGlobalPreferences'
 
 const props = defineProps<{
   data?: any
@@ -151,9 +151,10 @@ watch(()=>props.showLabels, ()=> draw())
 watch(()=>props.highlightId, ()=> draw())
 watch(()=>props.colorStyle, ()=> draw())
 watch(()=>props.colorTint, ()=> draw())
-// Repaint when the global app-bg changes so outline-mode neutral
-// fill (which reads --card) doesn't stay on the previous color.
-watch(globalAppBg, () => draw())
+// Repaint when the effective theme or global app-bg changes so
+// outline-mode neutral fill (which reads --card) and colors that
+// depend on --fg / --line don't stay on the previous theme.
+watch([globalAppBg, activeThemeMode], () => draw())
 
 function onMouseMove(event: MouseEvent) {
   const cvEl = cv.value

@@ -7,6 +7,7 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ctxFor, drawChartTooltip, paintPolishedBar, themeVar } from '../../services/charts'
 import { formatDateOnly, getFirstDayOfWeek, parseDateKey } from '../../services/dateTime'
+import { globalAppBg, activeThemeMode } from '../../../composables/useGlobalPreferences'
 
 const props = defineProps<{ stacked?: any, colorsById: Record<string,string>, showLabels?: boolean, highlightId?: string | null, colorStyle?: 'fill' | 'outline'
   colorTint?: number }>()
@@ -395,6 +396,7 @@ watch(()=>props.showLabels, ()=> draw())
 watch(()=>props.highlightId, ()=> draw())
 watch(()=>props.colorStyle, ()=> draw())
 watch(()=>props.colorTint, ()=> draw())
+watch([globalAppBg, activeThemeMode], () => draw())
 
 function onMouseMove(event: MouseEvent) {
   const cvEl = cv.value

@@ -5,6 +5,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ctxFor, drawChartTooltip, paintPolishedBar, themeVar } from '../../services/charts'
+import { globalAppBg, activeThemeMode } from '../../../composables/useGlobalPreferences'
 
 const props = defineProps<{
   data?: {
@@ -190,5 +191,6 @@ watch(() => props.data, () => draw(), { deep: true })
 watch(() => props.showLabels, () => draw())
 watch(() => props.colorStyle, () => draw())
 watch(() => props.colorTint, () => draw())
+watch([globalAppBg, activeThemeMode], () => draw())
 
 </script>
