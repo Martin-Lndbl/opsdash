@@ -4,7 +4,7 @@
   --bg:#ffffff;
   --card:#ffffff;
   --line:#e5e7eb;
-  --brand: var(--color-primary-element, var(--color-primary, #2563eb));
+  --brand: var(--color-primary, var(--color-primary-element, var(--primary-color, #2563eb)));
   --soft:#f7f7f8;
   --pos:#16a34a;
   --neg:#ef4444;
@@ -23,7 +23,7 @@
     --bg:#0b1220;
     --card:#0f172a;
     --line:#1f2937;
-    --brand: var(--color-primary-element-light, var(--color-primary-element, var(--color-primary, #60a5fa)));
+    --brand: var(--color-primary-element-light, var(--color-primary, var(--color-primary-element, var(--primary-color, #60a5fa))));
     --soft:#0b2942;
     --pos:#22c55e;
     --neg:#f87171;
@@ -35,7 +35,7 @@
   --bg:#ffffff;
   --card:#ffffff;
   --line:#e5e7eb;
-  --brand: var(--color-primary-element, var(--color-primary, #2563eb));
+  --brand: var(--color-primary, var(--color-primary-element, var(--primary-color, #2563eb)));
   --soft:#f7f7f8;
   --pos:#16a34a;
   --neg:#ef4444;
@@ -54,7 +54,7 @@
   --bg:#0b1220;
   --card:#0f172a;
   --line:#1f2937;
-  --brand: var(--color-primary-element-light, var(--color-primary-element, var(--color-primary, #60a5fa)));
+  --brand: var(--color-primary-element-light, var(--color-primary, var(--color-primary-element, var(--primary-color, #60a5fa))));
   --soft:#0b2942;
   --pos:#22c55e;
   --neg:#f87171;
@@ -397,27 +397,26 @@
   font-size:13px;
 }
 /* Lean shared polish — used for every card and for inner panels.
-   Small brand kiss in the top-left corner only (~40px reach), thin brand-tinted
-   border, one soft drop, a 2px left accent bar via inset shadow. */
+   Tiny brand kiss in the top-left corner only (fades within ~24% of the card),
+   thin brand-tinted border, one soft drop, a 2px left accent bar via inset shadow. */
 #opsdash .card,
 #opsdash .balance-card{
   position:relative;
   background-color:var(--card);
   background-image:
-    radial-gradient(120% 90% at 0% 0%, color-mix(in oklab, var(--brand, #2563eb) 10%, transparent), transparent 32%);
-  border:1px solid color-mix(in oklab, var(--brand, #2563eb) 20%, var(--line, #e5e7eb));
+    radial-gradient(100% 70% at 0% 0%, color-mix(in oklab, var(--brand, #2563eb) 6%, transparent), transparent 24%);
+  border:1px solid color-mix(in oklab, var(--brand, #2563eb) 16%, var(--line, #e5e7eb));
   border-radius:calc(var(--opsdash-radius) * var(--widget-space, 1));
   padding:var(--widget-pad, 16px);
   box-shadow:
     inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 55%, transparent),
-    inset 0 1px 0 color-mix(in oklab, #ffffff 18%, transparent),
-    0 10px 22px rgba(0,0,0,0.14);
+    0 8px 20px rgba(0,0,0,0.12);
   font-size:var(--widget-font, 14px);
   transition:border-color .18s ease;
 }
 #opsdash .card:hover,
 #opsdash .balance-card:hover{
-  border-color:color-mix(in oklab, var(--brand, #2563eb) 36%, var(--line, #e5e7eb));
+  border-color:color-mix(in oklab, var(--brand, #2563eb) 32%, var(--line, #e5e7eb));
 }
 
 /* Unified header treatment — subtle, no shouting */
@@ -578,9 +577,6 @@
   display:block;
   width:100%;
   height:360px;
-  border:1px solid var(--line);
-  border-radius:12px;
-  background:var(--card);
 }
 #opsdash .hint{
   font-size:12px;
@@ -2321,8 +2317,9 @@
 
 /* ── Mode band ── */
 #opsdash .mode-hint{
-  font-size:11px;color:var(--brand);font-weight:600;
-  opacity:.7;white-space:nowrap;align-self:center;padding-left:10px;
+  font-size:11px;font-weight:700;
+  color:color-mix(in oklab, var(--brand), var(--fg) 40%);
+  white-space:nowrap;align-self:center;padding-left:10px;
 }
 #opsdash .bar-row--edit-actions{
   gap:10px;
