@@ -154,25 +154,121 @@
               <span class="ge-unit">h/wk</span>
             </div>
           </label>
-          <div v-for="cat in targets.categories || []" :key="cat.id" class="ge-cat">
-            <span
-              class="ge-dot"
-              :style="{ background: cat.color || 'var(--brand, #2563eb)' }"
-              aria-hidden="true"
-            />
-            <span class="ge-cat-label" :title="cat.label">{{ cat.label }}</span>
-            <div class="ge-input">
-              <input
-                type="number"
-                min="0"
-                max="1000"
-                step="0.5"
-                :value="cat.targetHours ?? 0"
-                @input="(e) => onCategoryInput(cat.id, e)"
-              />
-              <span class="ge-unit">h</span>
+
+          <div class="ge-cats">
+            <div
+              v-for="cat in targets.categories || []"
+              :key="cat.id"
+              class="ge-catcard"
+              :class="{ 'ge-catcard--open': openCategoryId === cat.id }"
+            >
+              <div class="ge-catcard__head">
+                <ColorPickerPopover
+                  :model-value="cat.color || '#2563EB'"
+                  @update:model-value="(c) => onCategoryColor(cat.id, c)"
+                />
+                <input
+                  class="ge-catlabel"
+                  type="text"
+                  :value="cat.label"
+                  :placeholder="'Category'"
+                  @input="(e) => onCategoryLabel(cat.id, (e.target as HTMLInputElement).value)"
+                />
+                <div class="ge-input ge-input--sm">
+                  <input
+                    type="number"
+                    min="0"
+                    max="1000"
+                    step="0.5"
+                    :value="cat.targetHours ?? 0"
+                    @input="(e) => onCategoryInput(cat.id, e)"
+                  />
+                  <span class="ge-unit">h</span>
+                </div>
+                <button
+                  class="ge-catcard__toggle"
+                  type="button"
+                  :aria-expanded="openCategoryId === cat.id"
+                  :aria-label="openCategoryId === cat.id ? 'Collapse calendars' : 'Expand calendars'"
+                  :title="calendarsForCategory(cat.id).length + ' calendar' + (calendarsForCategory(cat.id).length === 1 ? '' : 's')"
+                  @click="toggleCategory(cat.id)"
+                >
+                  <span class="ge-catcard__count">{{ calendarsForCategory(cat.id).length }}</span>
+                  <svg
+                    class="ge-caret"
+                    :class="{ 'ge-caret--open': openCategoryId === cat.id }"
+                    viewBox="0 0 12 7" width="10" height="6" fill="none"
+                  >
+                    <path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <button
+                  class="ge-catcard__remove"
+                  type="button"
+                  :disabled="(targets.categories || []).length <= 1"
+                  aria-label="Remove category"
+                  title="Remove category"
+                  @click="removeCategory(cat.id)"
+                >×</button>
+              </div>
+
+              <div v-if="openCategoryId === cat.id" class="ge-catcard__body">
+                <div
+                  v-for="cal in calendarsForCategory(cat.id)"
+                  :key="cal.id"
+                  class="ge-calrow"
+                >
+                  <span
+                    class="ge-dot"
+                    :style="{ background: cal.color || 'var(--brand, #2563eb)' }"
+                    aria-hidden="true"
+                  />
+                  <span class="ge-cal-label" :title="cal.displayname">{{ cal.displayname }}</span>
+                  <div class="ge-input ge-input--sm">
+                    <input
+                      type="number"
+                      min="0"
+                      max="1000"
+                      step="0.25"
+                      :value="calendarTarget(cal.id)"
+                      @input="(e) => onCalendarTarget(cal.id, e)"
+                    />
+                    <span class="ge-unit">h</span>
+                  </div>
+                  <button
+                    class="ge-catcard__remove"
+                    type="button"
+                    aria-label="Unassign calendar"
+                    :title="'Unassign ' + cal.displayname"
+                    @click="onAssignCalendar(cal.id, '')"
+                  >×</button>
+                </div>
+
+                <label
+                  v-if="assignableCalendars(cat.id).length"
+                  class="ge-add-cal"
+                >
+                  <span>+ Add calendar</span>
+                  <select
+                    :value="''"
+                    @change="onAddCalendarChange(cat.id, $event.target as HTMLSelectElement)"
+                  >
+                    <option value="">Pick calendar…</option>
+                    <option
+                      v-for="opt in assignableCalendars(cat.id)"
+                      :key="cat.id + '-' + opt.id"
+                      :value="opt.id"
+                    >{{ opt.displayname }}</option>
+                  </select>
+                </label>
+                <div v-else class="ge-hint">No unassigned calendars left.</div>
+              </div>
             </div>
           </div>
+
+          <button class="ge-add" type="button" @click="addCategory">
+            + Add category
+          </button>
         </div>
       </div>
 
@@ -270,7 +366,10 @@ import { computed, ref, watch } from 'vue'
 import { NcAppNavigation } from '@nextcloud/vue'
 import { getWeekNumber, parseDateKey } from '../../services/dateTime'
 import { preferredScope, globalAppBg } from '../../../composables/useGlobalPreferences'
-import type { TargetsConfig } from '../../services/targets'
+import type { TargetCategoryConfig, TargetsConfig } from '../../services/targets'
+import ColorPickerPopover from '../ColorPickerPopover.vue'
+
+type SidebarCalendar = { id: string; displayname: string; color?: string }
 
 const MDI_LAYERS = "M12,16L19.36,10.27L21,9L12,2L3,9L4.63,10.27M12,18.54L4.62,12.81L3,14.07L12,21.07L21,14.07L19.37,12.8L12,18.54Z"
 const MDI_CALENDAR_MULTIPLE = "M21,17V8H7V17H21M21,3A2,2 0 0,1 23,5V17A2,2 0 0,1 21,19H7C5.89,19 5,18.1 5,17V5A2,2 0 0,1 7,3H8V1H10V3H18V1H20V3H21M3,21H17V23H3C1.89,23 1,22.1 1,21V9H3V21M19,15H15V11H19V15Z"
@@ -306,6 +405,9 @@ const props = defineProps<{
   guidedHintStatuses?: Partial<Record<'strategy' | 'calendars' | 'deck' | 'goals' | 'preferences' | 'dashboard' | 'review', 'done' | 'warn' | 'dim' | 'skip'>>
   themePreference?: 'auto' | 'light' | 'dark'
   targets?: TargetsConfig | null
+  calendars?: SidebarCalendar[]
+  groupsById?: Record<string, number>
+  currentTargets?: Record<string, number>
 }>()
 
 const emit = defineEmits([
@@ -320,6 +422,9 @@ const emit = defineEmits([
   'update:theme-preference',
   'update-total-hours',
   'update-category-target',
+  'update-targets-config',
+  'set-group',
+  'set-calendar-target',
 ])
 
 const rangeEyebrow = computed(() => props.range === 'month' ? 'This month' : 'This week')
@@ -384,6 +489,121 @@ function onCategoryInput(id: string, event: Event) {
   if (!Number.isFinite(raw)) return
   const clamped = Math.max(0, Math.min(1000, raw))
   emit('update-category-target', { id, value: clamped })
+}
+
+// Expandable per-category calendar assignments editor.
+const openCategoryId = ref<string>('')
+function toggleCategory(id: string) {
+  openCategoryId.value = openCategoryId.value === id ? '' : id
+}
+
+const categoriesRef = computed<TargetCategoryConfig[]>(() => props.targets?.categories ?? [])
+
+function categoryGroupId(cat: TargetCategoryConfig): number {
+  const g = Array.isArray(cat.groupIds) ? cat.groupIds.find((n) => n > 0) : null
+  return g ?? 0
+}
+
+function categoryOfCalendar(calId: string): string {
+  const groupId = (props.groupsById ?? {})[calId] ?? 0
+  if (!groupId) return ''
+  const match = categoriesRef.value.find((cat) => (cat.groupIds || []).includes(groupId))
+  return match?.id ?? ''
+}
+
+function calendarsForCategory(categoryId: string): SidebarCalendar[] {
+  const list = props.calendars ?? []
+  return list.filter((cal) => categoryOfCalendar(cal.id) === categoryId)
+}
+
+function assignableCalendars(categoryId: string): SidebarCalendar[] {
+  const list = props.calendars ?? []
+  return list.filter((cal) => {
+    const cur = categoryOfCalendar(cal.id)
+    return !cur || cur === categoryId
+  })
+}
+
+function calendarTarget(calId: string): number {
+  const map = props.currentTargets ?? {}
+  const raw = Number(map[calId])
+  if (!Number.isFinite(raw)) return 0
+  return Math.round(raw * 100) / 100
+}
+
+function onCalendarTarget(calId: string, event: Event) {
+  const raw = Number((event.target as HTMLInputElement).value)
+  if (!Number.isFinite(raw)) return
+  const clamped = Math.max(0, Math.min(1000, raw))
+  emit('set-calendar-target', { id: calId, value: clamped })
+}
+
+function onAssignCalendar(calId: string, categoryId: string) {
+  const groupId = categoryId
+    ? categoryGroupId(categoriesRef.value.find((c) => c.id === categoryId) as TargetCategoryConfig)
+    : 0
+  emit('set-group', { id: calId, groupId })
+}
+
+function onAddCalendarChange(categoryId: string, select: HTMLSelectElement) {
+  const calId = select.value
+  if (!calId) return
+  onAssignCalendar(calId, categoryId)
+  select.value = ''
+}
+
+function nextGroupId(): number {
+  const used = new Set<number>()
+  categoriesRef.value.forEach((cat) => (cat.groupIds || []).forEach((n) => used.add(n)))
+  for (let i = 1; i <= 9; i += 1) {
+    if (!used.has(i)) return i
+  }
+  return 0
+}
+
+function cloneCategories(): TargetCategoryConfig[] {
+  return categoriesRef.value.map((c) => ({ ...c, groupIds: [...(c.groupIds || [])] }))
+}
+
+function emitCategoriesUpdate(nextCategories: TargetCategoryConfig[]) {
+  if (!props.targets) return
+  emit('update-targets-config', { ...props.targets, categories: nextCategories })
+}
+
+function addCategory() {
+  if (!props.targets) return
+  const groupId = nextGroupId()
+  const existingIds = new Set(categoriesRef.value.map((c) => c.id))
+  let id = `cat_${Date.now().toString(36)}`
+  while (existingIds.has(id)) id += 'x'
+  const cat: TargetCategoryConfig = {
+    id,
+    label: `Category ${categoriesRef.value.length + 1}`,
+    targetHours: 0,
+    includeWeekend: false,
+    paceMode: 'days_only',
+    color: null,
+    groupIds: groupId ? [groupId] : [],
+  }
+  emitCategoriesUpdate([...cloneCategories(), cat])
+  openCategoryId.value = id
+}
+
+function removeCategory(id: string) {
+  if (!props.targets) return
+  const next = cloneCategories().filter((c) => c.id !== id)
+  emitCategoriesUpdate(next)
+  if (openCategoryId.value === id) openCategoryId.value = ''
+}
+
+function onCategoryLabel(id: string, value: string) {
+  const next = cloneCategories().map((c) => (c.id === id ? { ...c, label: value } : c))
+  emitCategoriesUpdate(next)
+}
+
+function onCategoryColor(id: string, color: string) {
+  const next = cloneCategories().map((c) => (c.id === id ? { ...c, color: color || null } : c))
+  emitCategoriesUpdate(next)
 }
 </script>
 
@@ -730,21 +950,15 @@ function onCategoryInput(id: string, event: Event) {
   letter-spacing: .04em;
   text-transform: uppercase;
 }
-.ge-cat {
-  display: grid;
-  grid-template-columns: 12px 1fr auto;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-  min-width: 0;
-}
 .ge-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   border: 1px solid color-mix(in oklab, var(--fg, #0f172a) 15%, transparent);
+  flex-shrink: 0;
 }
-.ge-cat-label {
+.ge-cat-label,
+.ge-cal-label {
   font-size: 12px;
   font-weight: 700;
   color: var(--fg, #0f172a);
@@ -752,6 +966,152 @@ function onCategoryInput(id: string, event: Event) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1 1 auto;
+}
+.ge-cats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ge-catcard {
+  border: 1px solid color-mix(in oklab, var(--fg, #0f172a) 8%, transparent);
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--card, #fff) 92%, var(--fg, #0f172a) 4%);
+  padding: 4px;
+}
+.ge-catcard--open {
+  border-color: color-mix(in oklab, var(--brand, #2563eb) 30%, transparent);
+  box-shadow: 0 4px 10px color-mix(in oklab, var(--brand, #2563eb) 8%, transparent);
+}
+.ge-catcard__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+}
+.ge-catcard__head :deep(.color-picker-popover) {
+  flex-shrink: 0;
+}
+.ge-catcard__head :deep(.cpp-swatch) {
+  width: 22px;
+  height: 22px;
+}
+.ge-catlabel {
+  min-width: 0;
+  width: 100%;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg, #0f172a);
+}
+.ge-catlabel:focus {
+  outline: none;
+  border-color: color-mix(in oklab, var(--brand, #2563eb) 30%, transparent);
+  background: var(--card, #fff);
+}
+.ge-catcard__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line, #e2e8f0);
+  background: transparent;
+  color: var(--muted, #64748b);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  appearance: none;
+}
+.ge-catcard__toggle:hover {
+  color: var(--fg, #0f172a);
+  background: color-mix(in oklab, var(--fg, #0f172a) 4%, transparent);
+}
+.ge-catcard__count { font-variant-numeric: tabular-nums; }
+.ge-caret { transition: transform .18s ease; }
+.ge-caret--open { transform: rotate(180deg); }
+.ge-catcard__remove {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted, #64748b);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ge-catcard__remove:hover:not(:disabled) {
+  color: var(--neg, #ef4444);
+  background: color-mix(in oklab, var(--neg, #ef4444) 10%, transparent);
+}
+.ge-catcard__remove:disabled { opacity: .35; cursor: default; }
+.ge-catcard__body {
+  padding: 6px 4px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ge-calrow {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+}
+.ge-add-cal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px dashed color-mix(in oklab, var(--fg, #0f172a) 18%, transparent);
+  color: var(--muted, #64748b);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  position: relative;
+}
+.ge-add-cal:hover {
+  color: var(--brand, #2563eb);
+  border-color: color-mix(in oklab, var(--brand, #2563eb) 40%, transparent);
+}
+.ge-add-cal select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.ge-hint {
+  font-size: 11px;
+  color: var(--muted, #64748b);
+  padding: 4px 6px;
+}
+.ge-add {
+  width: 100%;
+  height: 28px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in oklab, var(--brand, #2563eb) 40%, transparent);
+  background: transparent;
+  color: var(--brand, #2563eb);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  appearance: none;
+}
+.ge-add:hover {
+  background: color-mix(in oklab, var(--brand, #2563eb) 10%, transparent);
 }
 .ge-input {
   display: flex;
@@ -775,6 +1135,8 @@ function onCategoryInput(id: string, event: Event) {
   appearance: textfield;
   -moz-appearance: textfield;
 }
+.ge-input--sm { padding: 1px 6px; }
+.ge-input--sm input[type="number"] { width: 40px; font-size: 11px; }
 .ge-input input[type="number"]::-webkit-outer-spin-button,
 .ge-input input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;

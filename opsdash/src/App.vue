@@ -80,6 +80,9 @@
           :release-notes-open="releaseNotesOverlayOpen"
           :theme-preference="themePreference"
           :targets="targetsConfig"
+          :calendars="calendars"
+          :groups-by-id="groupsById"
+          :current-targets="currentTargets"
           @load="performLoad"
           @update:range="(v)=>{ range=v as any; offset=0; performLoad() }"
           @update:offset="(v)=>{ offset=v as number; performLoad() }"
@@ -91,6 +94,9 @@
           @update:theme-preference="(v) => setThemePreference(v)"
           @update-total-hours="(v) => updateTargetsConfig({ ...targetsConfig, totalHours: Number(v) })"
           @update-category-target="({ id, value }) => updateTargetsConfig({ ...targetsConfig, categories: (targetsConfig.categories || []).map((c) => c.id === id ? { ...c, targetHours: Number(value) } : c) })"
+          @update-targets-config="(cfg) => updateTargetsConfig(cfg)"
+          @set-group="({ id, groupId }) => setGroup(id, groupId)"
+          @set-calendar-target="({ id, value }) => setTarget(id, value)"
         />
       </template>
 
