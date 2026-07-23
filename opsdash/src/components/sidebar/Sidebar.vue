@@ -653,7 +653,7 @@ const onCategoryLabelCommit = (id: string, v: string) => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  box-shadow: inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 55%);
+  box-shadow: none;
 }
 .hero {
   background-color: var(--card, #fff);
@@ -839,7 +839,7 @@ const onCategoryLabelCommit = (id: string, v: string) => {
   background-image: linear-gradient(180deg,
     color-mix(in oklab, var(--card, #fff), #ffffff 4%) 0%,
     var(--card, #fff) 62%);
-  box-shadow: inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 60%);
+  box-shadow: none;
 }
 .qs-hd { display: flex; align-items: center; justify-content: space-between; }
 .qs-row {
@@ -919,7 +919,7 @@ const onCategoryLabelCommit = (id: string, v: string) => {
   background-image: linear-gradient(180deg,
     color-mix(in oklab, var(--card, #fff), #ffffff 4%) 0%,
     var(--card, #fff) 62%);
-  box-shadow: inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 60%);
+  box-shadow: none;
 }
 .ge-row {
   display: grid;
@@ -1163,7 +1163,7 @@ const onCategoryLabelCommit = (id: string, v: string) => {
   background-image: linear-gradient(180deg,
     color-mix(in oklab, var(--card, #fff), #ffffff 4%) 0%,
     var(--card, #fff) 62%);
-  box-shadow: inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 60%);
+  box-shadow: none;
 }
 
 .sc-toggle {
@@ -1346,7 +1346,7 @@ const onCategoryLabelCommit = (id: string, v: string) => {
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   margin-top: auto;
-  box-shadow: inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 60%);
+  box-shadow: none;
 }
 :global(#opsdash.has-app-bg) .hero,
 :global(#opsdash.has-app-bg) .qs,

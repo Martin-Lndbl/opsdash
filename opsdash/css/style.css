@@ -123,7 +123,7 @@
   overflow-y:auto !important;
   scrollbar-gutter:stable;
   direction:rtl;
-  box-shadow:inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 60%);
+  box-shadow:none;
   transition:width .25s ease, max-width .25s ease, padding .25s ease, border .25s ease, box-shadow .25s ease, opacity .2s ease;
 }
 #opsdash .app-content__navigation[aria-hidden="true"]{
@@ -417,9 +417,7 @@
   border:1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 84%);
   border-radius:calc(var(--opsdash-radius) * var(--widget-space, 1));
   padding:var(--widget-pad, 16px);
-  box-shadow:
-    inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 40%, transparent),
-    inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 60%);
+  box-shadow:inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 40%, transparent);
   font-size:var(--widget-font, 14px);
   transition:box-shadow .18s ease, border-color .18s ease;
 }
@@ -446,9 +444,7 @@
 #opsdash .card:hover,
 #opsdash .balance-card:hover{
   border-color:color-mix(in oklab, var(--brand, #2563eb), transparent 72%);
-  box-shadow:
-    inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 65%, transparent),
-    inset 0 1px 0 color-mix(in oklab, #ffffff, transparent 55%);
+  box-shadow:inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 65%, transparent);
 }
 
 /* Unified header treatment — subtle, no shouting */
