@@ -419,7 +419,6 @@
   padding:var(--widget-pad, 16px);
   box-shadow:inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 40%, transparent);
   font-size:var(--widget-font, 14px);
-  transition:box-shadow .18s ease, border-color .18s ease;
 }
 /* When the user has picked a custom app background, drop the
    surface gradients + top highlight from widget cards so the
@@ -430,21 +429,12 @@
   background-image:none;
   box-shadow:inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 40%, transparent);
 }
-#opsdash.has-app-bg .card:hover,
-#opsdash.has-app-bg .balance-card:hover{
-  box-shadow:inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 65%, transparent);
-}
 /* Sidebar container: drop the surface gradient overlay when the
    user has picked a custom bg, but keep the subtle --fg-tinted
    background so the sidebar still reads as a distinct panel next
    to the widget grid. */
 #opsdash.has-app-bg .app-content__navigation{
   background-image:none;
-}
-#opsdash .card:hover,
-#opsdash .balance-card:hover{
-  border-color:color-mix(in oklab, var(--brand, #2563eb), transparent 72%);
-  box-shadow:inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 65%, transparent);
 }
 
 /* Unified header treatment — subtle, no shouting */
