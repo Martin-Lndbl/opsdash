@@ -5,7 +5,7 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ctxFor, themeVar } from '../../services/charts'
+import { ctxFor, paintPolishedBar, themeVar } from '../../services/charts'
 import { formatDateOnly, getFirstDayOfWeek, parseDateKey } from '../../services/dateTime'
 
 const props = defineProps<{ stacked?: any, colorsById: Record<string,string>, showLabels?: boolean, highlightId?: string | null }>()
@@ -180,8 +180,7 @@ function draw(){
         if (h>0.5) {
           ctx.save()
           if (isDim) ctx.globalAlpha = 0.25
-          ctx.fillStyle = col
-          ctx.fillRect(x, y, bw, h)
+          paintPolishedBar(ctx, x, y, bw, h, col)
           if (isMatch) {
             ctx.strokeStyle = 'rgba(255,255,255,0.9)'
             ctx.lineWidth = 1.5

@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ctxFor, themeVar } from '../../services/charts'
+import { ctxFor, paintPolishedBar, themeVar } from '../../services/charts'
 
 const props = defineProps<{
   data?: { labels?: string[]; data?: number[]; colors?: string[] }
@@ -77,8 +77,7 @@ function draw() {
     const h = Math.max(0, val * chartScale)
     const x = x0 + gap + i * (bw + gap)
     const y = y0 - h
-    ctx.fillStyle = colors[i] || '#93c5fd'
-    ctx.fillRect(x, y, bw, h)
+    paintPolishedBar(ctx, x, y, bw, h, colors[i] || '#93c5fd')
     ctx.fillStyle = fg
     ctx.font = `${12 * textScale}px ui-sans-serif,system-ui`
     if (bw > 26) {

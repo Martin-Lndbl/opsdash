@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ctxFor, themeVar } from '../../services/charts'
+import { ctxFor, paintPolishedBar, themeVar } from '../../services/charts'
 
 const props = defineProps<{
   data?: {
@@ -90,8 +90,7 @@ function draw() {
       const h = Math.max(0, val * chartScale)
       const x = groupX + seriesIdx * (barWidth + innerGap)
       const y = y0 - h
-      ctx.fillStyle = row?.color || '#93c5fd'
-      ctx.fillRect(x, y, barWidth, h)
+      paintPolishedBar(ctx, x, y, barWidth, h, row?.color || '#93c5fd')
       if (props.showLabels !== false && h > 14 * textScale && barWidth > 20 * textScale && val > 0.01) {
         ctx.fillStyle = fg
         ctx.font = `${12 * textScale}px ui-sans-serif,system-ui`

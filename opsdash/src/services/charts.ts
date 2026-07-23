@@ -54,6 +54,57 @@ export function invert(hex: string): string {
   return rgbToHex(255 - rgb.r, 255 - rgb.g, 255 - rgb.b)
 }
 
+function parseColorString(input: string): RgbColor | null {
+  const s = (input || '').trim()
+  if (!s) return null
+  if (s.startsWith('#')) return hexToRgb(s)
+  const m = /^rgba?\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/.exec(s)
+  if (m) return { r: Math.round(Number(m[1])), g: Math.round(Number(m[2])), b: Math.round(Number(m[3])) }
+  return null
+}
+
+function mixToward(rgb: RgbColor, target: number, ratio: number): string {
+  const p = Math.max(0, Math.min(1, ratio))
+  const r = Math.round(rgb.r + (target - rgb.r) * p)
+  const g = Math.round(rgb.g + (target - rgb.g) * p)
+  const b = Math.round(rgb.b + (target - rgb.b) * p)
+  return `rgb(${r}, ${g}, ${b})`
+}
+
+// Paint a rectangular bar with a subtle vertical gradient + top shine.
+// Mirrors the look of TimeSummary's week bars so other bar charts feel
+// consistent rather than reading as flat calendar-color slabs.
+export function paintPolishedBar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: string,
+): void {
+  if (w <= 0 || h <= 0) {
+    return
+  }
+  const rgb = parseColorString(color) ?? { r: 147, g: 197, b: 253 }
+  const light = mixToward(rgb, 255, 0.24)
+  const base = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
+  const dark = mixToward(rgb, 0, 0.14)
+  const grad = ctx.createLinearGradient(0, y, 0, y + h)
+  grad.addColorStop(0, light)
+  grad.addColorStop(0.55, base)
+  grad.addColorStop(1, dark)
+  ctx.fillStyle = grad
+  ctx.fillRect(x, y, w, h)
+  if (h > 3) {
+    const shineHeight = Math.min(h, 6)
+    const shine = ctx.createLinearGradient(0, y, 0, y + shineHeight)
+    shine.addColorStop(0, 'rgba(255,255,255,0.28)')
+    shine.addColorStop(1, 'rgba(255,255,255,0)')
+    ctx.fillStyle = shine
+    ctx.fillRect(x, y, w, shineHeight)
+  }
+}
+
 // Muted paper → steel gradient for heatmap cells
 export function heatColor(t: number): string {
   const clamp = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x)
