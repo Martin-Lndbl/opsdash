@@ -20,7 +20,7 @@
   #opsdash{
     --fg:#e5e7eb;
     --muted:#94a3b8;
-    --bg:#0b1220;
+    --bg:#111111;
     --card:#0f172a;
     --line:#1f2937;
     --brand: color-mix(in oklab, var(--color-primary-element-light, var(--color-primary, var(--color-primary-element, var(--primary-color, #60a5fa)))), white 20%);
@@ -51,7 +51,7 @@
 #opsdash.opsdash-theme-dark{
   --fg:#e5e7eb;
   --muted:#94a3b8;
-  --bg:#0b1220;
+  --bg:#111111;
   --card:#0f172a;
   --line:#1f2937;
   /* Guarantee brand stays light-enough on dark surfaces even when NC's

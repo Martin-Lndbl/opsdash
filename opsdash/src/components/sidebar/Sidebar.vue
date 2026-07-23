@@ -464,6 +464,26 @@ function onCategoryInput(id: string, event: Event) {
   background: var(--card, #fff);
 }
 
+/* Dark-mode-only: put a tasteful gradient sheen back on every sidebar
+   card. Light mode stays flat because the same treatment reads as a
+   muddy grey wash there. */
+:global(#opsdash.opsdash-theme-dark) .hero {
+  background:
+    radial-gradient(circle at 120% -10%, color-mix(in oklab, var(--brand), transparent 76%), transparent 52%),
+    linear-gradient(180deg, color-mix(in oklab, var(--card), var(--brand) 6%), var(--card));
+}
+:global(#opsdash.opsdash-theme-dark) .qs,
+:global(#opsdash.opsdash-theme-dark) .ge,
+:global(#opsdash.opsdash-theme-dark) .sc {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--card), var(--brand) 4%), var(--card));
+}
+:global(#opsdash.opsdash-theme-dark) .dock {
+  background:
+    radial-gradient(circle at 50% -30%, color-mix(in oklab, var(--brand), transparent 82%), transparent 62%),
+    linear-gradient(180deg, color-mix(in oklab, var(--card), var(--brand) 3%), color-mix(in oklab, var(--card), var(--fg) 4%));
+}
+
 .ew {
   font-size: 10px;
   font-weight: 900;
