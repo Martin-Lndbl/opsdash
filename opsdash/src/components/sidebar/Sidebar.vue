@@ -170,9 +170,13 @@
                 <input
                   class="ge-catlabel"
                   type="text"
-                  :value="cat.label"
-                  :placeholder="'Category'"
-                  @input="(e) => onCategoryLabel(cat.id, (e.target as HTMLInputElement).value)"
+                  :value="labelDraft(cat.id, cat.label)"
+                  placeholder="Category"
+                  aria-label="Category name"
+                  @input="(e) => onCategoryLabelInput(cat.id, (e.target as HTMLInputElement).value)"
+                  @change="(e) => onCategoryLabelCommit(cat.id, (e.target as HTMLInputElement).value)"
+                  @blur="(e) => onCategoryLabelCommit(cat.id, (e.target as HTMLInputElement).value)"
+                  @keydown.enter.prevent="($event.target as HTMLInputElement).blur()"
                 />
                 <div class="ge-input ge-input--sm">
                   <input
@@ -596,9 +600,31 @@ function removeCategory(id: string) {
   if (openCategoryId.value === id) openCategoryId.value = ''
 }
 
-function onCategoryLabel(id: string, value: string) {
-  const next = cloneCategories().map((c) => (c.id === id ? { ...c, label: value } : c))
-  emitCategoriesUpdate(next)
+// Editing the label live would fight with normalizeTargetsConfig's
+// .trim() + empty-fallback: deleting the last character snaps the
+// value back to the capitalized id mid-edit. Keep a per-row draft
+// while the user types and only commit on blur / Enter.
+const labelDrafts = ref<Record<string, string>>({})
+
+function labelDraft(id: string, actual: string): string {
+  const draft = labelDrafts.value[id]
+  return draft !== undefined ? draft : actual
+}
+
+function onCategoryLabelInput(id: string, value: string) {
+  labelDrafts.value = { ...labelDrafts.value, [id]: value }
+}
+
+function onCategoryLabelCommit(id: string, value: string) {
+  const trimmed = value.trim()
+  const next = { ...labelDrafts.value }
+  delete next[id]
+  labelDrafts.value = next
+  if (!trimmed) return
+  const current = categoriesRef.value.find((c) => c.id === id)
+  if (!current || current.label === trimmed) return
+  const nextCats = cloneCategories().map((c) => (c.id === id ? { ...c, label: trimmed } : c))
+  emitCategoriesUpdate(nextCats)
 }
 
 function onCategoryColor(id: string, color: string) {
@@ -1001,18 +1027,27 @@ function onCategoryColor(id: string, color: string) {
   min-width: 0;
   width: 100%;
   height: 26px;
-  border: 1px solid transparent;
+  border: 1px solid color-mix(in oklab, var(--fg, #0f172a) 8%, transparent);
   border-radius: 8px;
-  background: transparent;
-  padding: 0 6px;
+  background: color-mix(in oklab, var(--card, #fff) 92%, var(--fg, #0f172a) 3%);
+  padding: 0 8px;
   font-size: 12px;
   font-weight: 700;
   color: var(--fg, #0f172a);
+  cursor: text;
+}
+.ge-catlabel:hover {
+  border-color: color-mix(in oklab, var(--fg, #0f172a) 18%, transparent);
 }
 .ge-catlabel:focus {
   outline: none;
-  border-color: color-mix(in oklab, var(--brand, #2563eb) 30%, transparent);
+  border-color: color-mix(in oklab, var(--brand, #2563eb) 45%, transparent);
   background: var(--card, #fff);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--brand, #2563eb) 18%, transparent);
+}
+.ge-catlabel::placeholder {
+  color: var(--muted, #64748b);
+  font-weight: 600;
 }
 .ge-catcard__toggle {
   display: inline-flex;
