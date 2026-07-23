@@ -14,7 +14,7 @@ import {
 } from '../src/services/reporting'
 import { normalizeWidgetTabs, type WidgetTabsState } from '../src/services/widgetsRegistry'
 import { createDefaultWidgetTabs, setWidgetPresets } from '../src/services/widgetDefaults'
-import { preferredScope, globalAppBg, globalAppBgLight, globalAppBgDark } from './useGlobalPreferences'
+import { preferredScope, globalAppBgLight, globalAppBgDark } from './useGlobalPreferences'
 import { readBootstrapThemePreference } from '../src/services/theme'
 import { readCurrentUserId } from '../src/services/currentUser'
 import { setUserDateTimeConfig } from '../src/services/dateTime'
@@ -260,12 +260,10 @@ export function useDashboard(deps: DashboardDeps) {
         if (json.preferredScope === 'calendar' || json.preferredScope === 'category') {
           preferredScope.value = json.preferredScope
         }
-        // Per-theme slots. We deliberately ignore the legacy
-        // single-value globalAppBg here: seeding both light and dark
-        // slots from one saved color reintroduces the exact bleed the
-        // split was meant to fix. Users who had a picked bg lose it
-        // once and re-pick per theme; the CSS defaults (#EFEFEF /
-        // #111111) apply until they do.
+        // Per-theme slots (light + dark). Ignore the legacy
+        // single-value globalAppBg: seeding both slots from one
+        // saved color reintroduces the cross-theme bleed the split
+        // was meant to fix.
         const parseBg = (v: unknown) =>
           typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v
           : v === null ? null : undefined
@@ -273,7 +271,6 @@ export function useDashboard(deps: DashboardDeps) {
         const darkRaw = parseBg(json.globalAppBgDark)
         if (lightRaw !== undefined) globalAppBgLight.value = lightRaw
         if (darkRaw !== undefined) globalAppBgDark.value = darkRaw
-        void globalAppBg
 
         if (deps.isDebug?.()) {
           console.group('[opsdash] calendars/colors')

@@ -124,9 +124,9 @@
       </div>
 
       <!-- ── Goals editor (collapsible) ── -->
-      <div v-if="targets" class="ge" :class="{ 'ge--collapsed': !goalsExpanded }">
+      <div v-if="targets" class="ge">
         <button
-          class="sc-hd sc-toggle"
+          class="sc-toggle"
           type="button"
           :aria-expanded="goalsExpanded"
           @click="goalsExpanded = !goalsExpanded"
@@ -287,9 +287,9 @@
       </div>
 
       <!-- ── Setup card (collapsible) ── -->
-      <div class="sc" :class="{ 'sc--collapsed': !setupExpanded }">
+      <div class="sc">
         <button
-          class="sc-hd sc-toggle"
+          class="sc-toggle"
           type="button"
           :aria-expanded="setupExpanded"
           @click="setupExpanded = !setupExpanded"
@@ -412,11 +412,9 @@ const props = defineProps<{
   from: string
   to: string
   navToggleLabel: string
-  navToggleIcon: string
   dashboardMode?: 'quick' | 'standard' | 'pro'
   guidedHints?: Partial<Record<'strategy' | 'calendars' | 'deck' | 'goals' | 'preferences' | 'dashboard' | 'review', string>>
   releaseNotesAvailable?: boolean
-  releaseNotesOpen?: boolean
   lastSync?: string | null
   guidedHintStatuses?: Partial<Record<'strategy' | 'calendars' | 'deck' | 'goals' | 'preferences' | 'dashboard' | 'review', 'done' | 'warn' | 'dim' | 'skip'>>
   themePreference?: 'auto' | 'light' | 'dark'
@@ -700,12 +698,6 @@ const onCategoryLabelCommit = (id: string, v: string) => {
   color: var(--fg, #0f172a);
 }
 
-.rc-sub {
-  font-size: 12px;
-  color: var(--muted, #64748b);
-  margin-top: -5px;
-}
-
 /* Segmented pill */
 .seg {
   display: grid;
@@ -942,7 +934,6 @@ const onCategoryLabelCommit = (id: string, v: string) => {
   border: 1px solid color-mix(in oklab, var(--fg, #0f172a) 15%, transparent);
   flex-shrink: 0;
 }
-.ge-cat-label,
 .ge-cal-label {
   font-size: 12px;
   font-weight: 700;

@@ -71,7 +71,6 @@
           :from="from"
           :to="to"
           :nav-toggle-label="navToggleLabel"
-          :nav-toggle-icon="navToggleIcon"
           :dashboard-mode="dashboardMode"
           :guided-hints="guidedHints"
           :guided-hint-statuses="guidedStepStatuses"
@@ -657,7 +656,7 @@ type BalanceOverviewSummary = {
   warnings: string[]
 } | null
 
-const { navOpen, toggleNav, navToggleLabel, navToggleIcon } = useSidebarState()
+const { navOpen, toggleNav, navToggleLabel } = useSidebarState()
 const profilesOverlayOpen = ref(false)
 function isCompactViewport() {
   return typeof window !== 'undefined' && window.matchMedia('(max-width: 1100px)').matches
