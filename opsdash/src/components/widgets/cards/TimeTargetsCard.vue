@@ -394,7 +394,7 @@ function colorMix(hex: string, factor = 0.5): string {
 .category .cat-meta .percent{ font-variant-numeric:tabular-nums; color:var(--fg) }
 .cat-progress .bar{ position:relative; width:100%; overflow:visible }
 .cat-progress .bar .bar-track{ position:relative; height:calc(16px * var(--widget-space, 1)); border-radius:999px; background:color-mix(in srgb, var(--muted) 20%, transparent); overflow:hidden }
-.cat-progress .bar .fill{ height:100%; border-radius:999px; transition:width .2s ease; max-width:100%; background-color:var(--fill-color, var(--brand)); background-image:linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 55%); background-repeat:no-repeat }
+.cat-progress .bar .fill{ height:100%; border-radius:999px; transition:width .2s ease; max-width:100%; background-color:color-mix(in oklab, var(--card, #fff) 94%, var(--fg, #0f172a) 6%); box-shadow:inset 0 0 0 1px var(--fill-color, var(--brand)), inset 2px 0 0 var(--fill-color, var(--brand)) }
 .cat-progress .bar .fill.fill-endless{ transition:none; background-image:linear-gradient(90deg, color-mix(in srgb, var(--fill-color, #f97316) 70%, #f97316), color-mix(in srgb, #fb923c 38%, transparent), color-mix(in srgb, var(--fill-color, #f97316) 78%, #f97316)) }
 .cat-progress .bar .today-overlay{ position:absolute; top:0; height:100%; border-radius:999px; opacity:0.45; border:0; pointer-events:none }
 .category .cat-metrics{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)); align-items:center; color:var(--fg) }

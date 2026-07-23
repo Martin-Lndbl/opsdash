@@ -71,9 +71,20 @@ function mixToward(rgb: RgbColor, target: number, ratio: number): string {
   return `rgb(${r}, ${g}, ${b})`
 }
 
-// Paint a rectangular bar with a single top-lighter accent, matching
-// the TimeSummary week bars: linear gradient from ~18% white lightening
-// at the top down to the base color. No dark bottom, no shine band.
+function neutralCardFill(ctx: CanvasRenderingContext2D): string {
+  const cvEl = ctx.canvas as HTMLCanvasElement
+  const cardBg = themeVar(cvEl, '--card', '#ffffff')
+  const fgColor = themeVar(cvEl, '--fg', '#0f172a')
+  const cardRgb = parseColorString(cardBg) ?? { r: 255, g: 255, b: 255 }
+  const fgRgb = parseColorString(fgColor) ?? { r: 15, g: 23, b: 42 }
+  const mix = (a: number, b: number) => Math.round(a * 0.94 + b * 0.06)
+  return `rgb(${mix(cardRgb.r, fgRgb.r)}, ${mix(cardRgb.g, fgRgb.g)}, ${mix(cardRgb.b, fgRgb.b)})`
+}
+
+// Paint a bar in the same "outline" language TimeSummary uses for its
+// calendar/category lanes: neutral card-ish fill, item color only as
+// the outer stroke + a 2px inset left accent. Every bar in a chart
+// therefore shares the same fill; the color reads through the border.
 export function paintPolishedBar(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -85,19 +96,22 @@ export function paintPolishedBar(
   if (w <= 0 || h <= 0) {
     return
   }
-  const rgb = parseColorString(color) ?? { r: 147, g: 197, b: 253 }
-  const light = mixToward(rgb, 255, 0.18)
-  const base = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
-  const grad = ctx.createLinearGradient(0, y, 0, y + h)
-  grad.addColorStop(0, light)
-  grad.addColorStop(1, base)
-  ctx.fillStyle = grad
+  ctx.fillStyle = neutralCardFill(ctx)
   ctx.fillRect(x, y, w, h)
+  // Left accent (2px wide) in the item color.
+  const accentW = Math.min(2, w)
+  ctx.fillStyle = color
+  ctx.fillRect(x, y, accentW, h)
+  // 1px outline in the item color, drawn at half-pixel offsets.
+  if (w >= 2 && h >= 2) {
+    ctx.strokeStyle = color
+    ctx.lineWidth = 1
+    ctx.strokeRect(x + 0.5, y + 0.5, Math.max(0, w - 1), Math.max(0, h - 1))
+  }
 }
 
-// Fill a pie slice with a subtle radial highlight at the inner edge —
-// same "color accent" language as the bars: base color plus a small
-// lift near the center, no heavy gradients.
+// Same treatment for pie slices: neutral fill, item color as the outer
+// stroke.
 export function paintPolishedSlice(
   ctx: CanvasRenderingContext2D,
   cx: number,
@@ -108,19 +122,15 @@ export function paintPolishedSlice(
   color: string,
 ): void {
   if (r <= 0) return
-  const rgb = parseColorString(color) ?? { r: 147, g: 197, b: 253 }
-  const light = mixToward(rgb, 255, 0.22)
-  const base = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
-  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
-  grad.addColorStop(0, light)
-  grad.addColorStop(0.65, base)
-  grad.addColorStop(1, base)
-  ctx.fillStyle = grad
+  ctx.fillStyle = neutralCardFill(ctx)
   ctx.beginPath()
   ctx.moveTo(cx, cy)
   ctx.arc(cx, cy, r, startAngle, endAngle)
   ctx.closePath()
   ctx.fill()
+  ctx.strokeStyle = color
+  ctx.lineWidth = 1.5
+  ctx.stroke()
 }
 
 // Small floating tooltip painted onto a chart canvas near the cursor.

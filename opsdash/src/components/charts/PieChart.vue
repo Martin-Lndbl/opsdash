@@ -66,10 +66,12 @@ function draw(){
     ctx.save()
     if (isDim) ctx.globalAlpha = 0.25
     paintPolishedSlice(ctx, cx, cy, r, ang, a2, chosen)
-    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,ang,a2);ctx.closePath();
-    ctx.lineWidth = isMatch ? 2 : 1
-    ctx.strokeStyle = isMatch ? 'rgba(255,255,255,0.9)' : baseStroke
-    ctx.stroke()
+    if (isMatch) {
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,ang,a2);ctx.closePath();
+      ctx.lineWidth = 2
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)'
+      ctx.stroke()
+    }
     ctx.restore()
     if (props.showLabels !== false) {
       const mid=(ang+a2)/2,lx=cx+Math.cos(mid)*(r+12*widgetSpace*pieScale),ly=cy+Math.sin(mid)*(r+12*widgetSpace*pieScale);
