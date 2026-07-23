@@ -1151,9 +1151,12 @@ widgetsQueueSaveRef.value = queueSave
 // Persist global preferences (preferredScope, globalAppBg) whenever they
 // change. The initial load will set them from the server payload; a guard
 // prevents that initial write from bouncing back as a redundant save.
+// Silent flag suppresses the "Selection saved" toast — the user hits the
+// scope tab / color picker rapidly and doesn't need a confirmation for
+// each tick.
 watch([preferredScope, globalAppBg], () => {
   if (!hasInitialLoad.value) return
-  queueSave(false)
+  queueSave(false, true)
 })
 
 // Goal strategies shape only a newly applied Standard template. They never

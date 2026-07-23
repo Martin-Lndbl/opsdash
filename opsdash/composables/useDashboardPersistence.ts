@@ -45,7 +45,7 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
   let saveSequence = 0
   let latestRequestId = 0
 
-  function queueSave(reload = true) {
+  function queueSave(reload = true, silent = false) {
     if (saveTimer) {
       clearTimeout(saveTimer)
     }
@@ -167,7 +167,9 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
           await deps.onReload()
         }
 
-        deps.notifySuccess('Selection saved')
+        if (!silent) {
+          deps.notifySuccess('Selection saved')
+        }
       } catch (error) {
         if (requestId !== latestRequestId) {
           return
