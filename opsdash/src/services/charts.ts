@@ -77,8 +77,18 @@ function neutralCardFill(ctx: CanvasRenderingContext2D): string {
   const fgColor = themeVar(cvEl, '--fg', '#0f172a')
   const cardRgb = parseColorString(cardBg) ?? { r: 255, g: 255, b: 255 }
   const fgRgb = parseColorString(fgColor) ?? { r: 15, g: 23, b: 42 }
-  const mix = (a: number, b: number) => Math.round(a * 0.94 + b * 0.06)
+  // 10% fg mix so the fill stays visible against the card in both themes.
+  const mix = (a: number, b: number) => Math.round(a * 0.9 + b * 0.1)
   return `rgb(${mix(cardRgb.r, fgRgb.r)}, ${mix(cardRgb.g, fgRgb.g)}, ${mix(cardRgb.b, fgRgb.b)})`
+}
+
+function tintOverlay(color: string, alphaTop: number, alphaBottom: number): (grad: CanvasGradient) => void {
+  const rgb = parseColorString(color) ?? { r: 147, g: 197, b: 253 }
+  return (grad) => {
+    grad.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alphaTop})`)
+    grad.addColorStop(0.6, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alphaBottom})`)
+    grad.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0)`)
+  }
 }
 
 export type ChartColorStyle = 'fill' | 'outline'
@@ -103,8 +113,8 @@ function paintFilledBar(
   ctx.fillRect(x, y, w, h)
 }
 
-// Outlined bar: neutral card-ish fill, item color only as a 2px inset
-// left accent + 1px outer stroke. Same vocabulary as TimeSummary lanes.
+// Outlined bar: neutral card-ish fill with a minimal color tint at the
+// top, 2px inset left accent, and 1px outer stroke in the item color.
 function paintOutlinedBar(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -114,6 +124,11 @@ function paintOutlinedBar(
   color: string,
 ): void {
   ctx.fillStyle = neutralCardFill(ctx)
+  ctx.fillRect(x, y, w, h)
+  // Minimal color gradient overlay.
+  const grad = ctx.createLinearGradient(0, y, 0, y + h)
+  tintOverlay(color, 0.16, 0.04)(grad)
+  ctx.fillStyle = grad
   ctx.fillRect(x, y, w, h)
   const accentW = Math.min(2, w)
   ctx.fillStyle = color
@@ -138,15 +153,17 @@ function paintOutlinedStackedSegment(
 ): void {
   ctx.fillStyle = neutralCardFill(ctx)
   ctx.fillRect(x, y, w, h)
+  // Minimal color gradient overlay.
+  const grad = ctx.createLinearGradient(0, y, 0, y + h)
+  tintOverlay(color, 0.18, 0.05)(grad)
+  ctx.fillStyle = grad
+  ctx.fillRect(x, y, w, h)
   const accentW = Math.min(2, w)
   ctx.fillStyle = color
-  // Left
   ctx.fillRect(x, y, accentW, h)
-  // Right
   if (w > accentW) {
     ctx.fillRect(x + w - accentW, y, accentW, h)
   }
-  // Top color band
   if (h > 2) {
     const topH = Math.min(2, h)
     ctx.fillRect(x, y, w, topH)
@@ -206,11 +223,19 @@ function paintOutlinedSlice(
   endAngle: number,
   color: string,
 ): void {
-  ctx.fillStyle = neutralCardFill(ctx)
   ctx.beginPath()
   ctx.moveTo(cx, cy)
   ctx.arc(cx, cy, r, startAngle, endAngle)
   ctx.closePath()
+  ctx.fillStyle = neutralCardFill(ctx)
+  ctx.fill()
+  // Minimal color tint pulled outward from the rim.
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
+  const rgb = parseColorString(color) ?? { r: 147, g: 197, b: 253 }
+  grad.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.02)`)
+  grad.addColorStop(0.75, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.08)`)
+  grad.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.22)`)
+  ctx.fillStyle = grad
   ctx.fill()
   ctx.strokeStyle = color
   ctx.lineWidth = 1.5
