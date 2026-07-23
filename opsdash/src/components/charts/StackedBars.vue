@@ -180,7 +180,7 @@ function draw(){
         if (h>0.5) {
           ctx.save()
           if (isDim) ctx.globalAlpha = 0.25
-          paintPolishedBar(ctx, x, y, bw, h, col, props.colorStyle ?? 'fill')
+          paintPolishedBar(ctx, x, y, bw, h, col, props.colorStyle ?? 'fill', 'segment')
           if (isMatch) {
             ctx.strokeStyle = 'rgba(255,255,255,0.9)'
             ctx.lineWidth = 1.5

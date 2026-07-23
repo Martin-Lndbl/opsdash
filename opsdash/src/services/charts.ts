@@ -125,7 +125,31 @@ function paintOutlinedBar(
   }
 }
 
+// Outlined stacked segment: neutral fill + a 2px left accent and a
+// 2px top color band. No side/bottom borders — segments stack tightly
+// and a full outline doubles at the seams.
+function paintOutlinedStackedSegment(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: string,
+): void {
+  ctx.fillStyle = neutralCardFill(ctx)
+  ctx.fillRect(x, y, w, h)
+  const accentW = Math.min(2, w)
+  ctx.fillStyle = color
+  ctx.fillRect(x, y, accentW, h)
+  if (h > 2) {
+    const topH = Math.min(2, h)
+    ctx.fillRect(x, y, w, topH)
+  }
+}
+
 // Router. Each chart widget picks its style; default is filled.
+// variant='segment' hints that the bar is one slice of a stacked bar,
+// so the outline treatment avoids doubling up at segment seams.
 export function paintPolishedBar(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -134,10 +158,13 @@ export function paintPolishedBar(
   h: number,
   color: string,
   style: ChartColorStyle = 'fill',
+  variant: 'bar' | 'segment' = 'bar',
 ): void {
   if (w <= 0 || h <= 0) return
-  if (style === 'outline') paintOutlinedBar(ctx, x, y, w, h, color)
-  else paintFilledBar(ctx, x, y, w, h, color)
+  if (style === 'outline') {
+    if (variant === 'segment') paintOutlinedStackedSegment(ctx, x, y, w, h, color)
+    else paintOutlinedBar(ctx, x, y, w, h, color)
+  } else paintFilledBar(ctx, x, y, w, h, color)
 }
 
 function paintFilledSlice(
