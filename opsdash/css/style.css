@@ -397,8 +397,11 @@
   font-size:13px;
 }
 #opsdash .card{
-  background:var(--card);
-  border:1px solid color-mix(in oklab, var(--line), #ffffff 45%);
+  background-color:var(--card);
+  background-image:
+    radial-gradient(circle at 0 0, color-mix(in oklab, var(--brand, #2563eb) 22%, transparent), transparent 48%),
+    linear-gradient(135deg, color-mix(in oklab, var(--brand, #2563eb) 16%, transparent), color-mix(in oklab, var(--card, #fff) 88%, transparent));
+  border:1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 72%);
   border-radius:calc(var(--opsdash-radius) * var(--widget-space, 1));
   padding:var(--widget-pad, 16px);
   box-shadow:
