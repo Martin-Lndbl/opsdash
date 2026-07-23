@@ -75,15 +75,6 @@
                 :class="{ 'fill-endless': cat.isEndless }"
                 :style="{ width: cat.progress + '%', '--fill-color': cat.color || 'var(--brand)' }"
               ></div>
-              <div
-                v-if="cat.todayWidth > 0"
-                class="today-overlay"
-                :style="{
-                  width: cat.todayWidth + '%',
-                  right: cat.todayRight + '%',
-                  background: cat.todayColor,
-              }"
-              ></div>
             </div>
           </div>
         </div>
@@ -210,8 +201,6 @@ const categoryItems = computed(() => categoryGroups.value.map(group => {
   const targetHours = summary.targetHours
   const totalOver = Math.max(0, summary.actualHours - targetHours)
   const overToday = Math.min(totalOver, todayHours)
-  const hasTodayHours = todayHours > 0
-  const todayPct = targetHours > 0 ? (todayHours / targetHours) * 100 : 0
   const display = buildDisplayProgress(summary, 'badge')
   const progressPct = display.progress
   return {
@@ -238,12 +227,9 @@ const categoryItems = computed(() => categoryGroups.value.map(group => {
     isEndless: display.isEndless,
     todayHours,
     overToday,
-    todayWidth: hasTodayHours && targetHours > 0 ? clamp(todayPct, 2, 200) : 0,
-    todayRight: Math.max(0, 100 - progressPct),
     todayText: overToday > 0
       ? `Today ${formatHours(todayHours)} (+${formatHours(overToday)})`
       : `Today ${formatHours(todayHours)}`,
-    todayColor: group.color ? colorMix(group.color, 0.65) : 'var(--brand)',
     calendarLabel: Array.isArray(group.rows) && group.rows.length === 1 ? 'calendar' : 'calendars',
   }
 }).filter(item => item.targetHours > 0 || item.actualHours > 0 || item.calendarCount > 0))
@@ -338,17 +324,6 @@ function methodLabel(method: 'linear' | 'momentum'): string {
   return method === 'momentum' ? 'Momentum' : 'Linear'
 }
 
-function colorMix(hex: string, factor = 0.5): string {
-  const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex || '')
-  if (!m) return hex
-  const r = parseInt(m[1], 16)
-  const g = parseInt(m[2], 16)
-  const b = parseInt(m[3], 16)
-  const mix = Math.max(0, Math.min(1, factor))
-  return `rgb(${Math.round(r + (255 - r) * mix)},${Math.round(g + (255 - g) * mix)},${Math.round(
-    b + (255 - b) * mix,
-  )})`
-}
 </script>
 
 <style scoped>
@@ -402,7 +377,6 @@ function colorMix(hex: string, factor = 0.5): string {
 .cat-progress .bar .fill{ height:100%; border-radius:999px; transition:width .2s ease; max-width:100%; background-color:var(--fill-color, var(--brand)); background-image:linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 55%); background-repeat:no-repeat }
 .targets-card--outline .cat-progress .bar .fill{ background-color:color-mix(in oklab, var(--card, #fff) 90%, var(--fg, #0f172a) 10%); background-image:linear-gradient(180deg, color-mix(in oklab, var(--fill-color, var(--brand)) 18%, transparent), color-mix(in oklab, var(--fill-color, var(--brand)) 4%, transparent) 60%, transparent); background-repeat:no-repeat; box-shadow:inset 0 0 0 1px var(--fill-color, var(--brand)), inset 2px 0 0 var(--fill-color, var(--brand)) }
 .cat-progress .bar .fill.fill-endless{ transition:none; background-image:linear-gradient(90deg, color-mix(in srgb, var(--fill-color, #f97316) 70%, #f97316), color-mix(in srgb, #fb923c 38%, transparent), color-mix(in srgb, var(--fill-color, #f97316) 78%, #f97316)) }
-.cat-progress .bar .today-overlay{ position:absolute; top:0; height:100%; border-radius:999px; opacity:0.45; border:0; pointer-events:none }
 .category .cat-metrics{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)); align-items:center; color:var(--fg) }
 .cat-metrics .today-inline{ font-weight:600 }
 .cat-footer{ display:flex; justify-content:space-between; align-items:center }
