@@ -1110,10 +1110,10 @@ const opsdashThemeClass = computed(() =>
 const opsdashRootStyle = computed(() => {
   const bg = globalAppBg.value
   if (!bg) return {}
-  // Only cascade to --bg (the page around widgets). Leaving --card alone
-  // keeps sidebar/widget surfaces on their theme-appropriate white/dark
-  // instead of inheriting an app-bg picked in the opposite theme.
-  return { '--bg': bg } as Record<string, string>
+  // Cascade the picked color into both the page background and widget
+  // surfaces so sidebar / widget cards match the chosen app bg instead
+  // of showing a contrasting card fill on top of it.
+  return { '--bg': bg, '--card': bg } as Record<string, string>
 })
 
 function openOnboardingFromLayout(step?: string) {
