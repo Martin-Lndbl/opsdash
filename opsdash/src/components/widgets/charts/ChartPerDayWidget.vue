@@ -8,6 +8,8 @@
       v-if="chartData"
       :data="chartData"
       :show-labels="showLabels"
+      :color-style="colorStyle"
+      :color-tint="colorTint"
       :x-label="xLabel"
       :y-label="yLabel"
     />
@@ -31,6 +33,8 @@ const props = defineProps<{
   cardBg?: string | null
   showHeader?: boolean
   showLabels?: boolean
+  colorStyle?: 'fill' | 'outline'
+  colorTint?: number
   xLabel?: string
   yLabel?: string
   chartData?: { labels?: string[]; data?: number[]; colors?: string[] } | null
@@ -39,7 +43,11 @@ const props = defineProps<{
 
 const showHeader = computed(() => props.showHeader !== false)
 const titleText = computed(() => props.title || 'Per-day totals')
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const legendItems = computed(() => props.legendItems || [])
 const xLabel = computed(() => props.xLabel || '')
 const yLabel = computed(() => props.yLabel || '')

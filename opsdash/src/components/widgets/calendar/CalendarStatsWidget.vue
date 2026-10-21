@@ -36,7 +36,11 @@ const props = defineProps<{
 const rows = computed(() => buildCalendarStatsRows(props.byCal || [], props.metrics, props.rangeLabel || ''))
 const titleText = computed(() => props.title || 'Calendar stats')
 const rangeText = computed(() => (props.rangeLabel || 'current range').toLowerCase())
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const showHeader = computed(() => props.showHeader !== false)
 </script>
 

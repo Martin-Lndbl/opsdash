@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import { ctxFor, heatColor, hexToRgb, rgbToHex, themeVar } from '../../services/charts'
+import { globalAppBg, activeThemeMode } from '../../../composables/useGlobalPreferences'
 
 // Props: hod contains weekday labels (rows), hour labels (cols), and a matrix of hour sums
 const props = defineProps<{ hod?: { dows:string[], hours:string[]|number[], matrix:number[][] }, baseColor?: string }>()
@@ -75,4 +76,5 @@ onMounted(async ()=>{
 })
 onBeforeUnmount(()=>{ try{ window.removeEventListener('resize', draw) }catch(_){} try{ ro && cv.value && ro.unobserve(cv.value) }catch(_){} ro=null })
 watch(()=>props.hod, ()=> draw(), { deep:true })
+watch([globalAppBg, activeThemeMode], () => draw())
 </script>

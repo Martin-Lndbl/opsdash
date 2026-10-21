@@ -131,7 +131,11 @@ const historyShortUnit = computed(() => (props.rangeMode === 'month' ? 'M' : 'W'
 const currentColumnLabel = computed(() => formatCurrentLabel())
 const lookbackCount = computed(() => Math.max(1, Math.min(6, props.lookbackWeeks || 1)))
 const titleText = computed(() => props.title || 'Category mix trend')
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 
 const rawHistoryEntries = computed<TrendHistoryEntry[]>(() => {
   const history = props.overview?.trend?.history ?? (props.overview as any)?.trendHistory ?? []

@@ -1,5 +1,9 @@
 <template>
-  <div class="balance-card" :style="cardStyle">
+  <div
+    class="balance-card"
+    :class="{ 'balance-card--compact': isCompact }"
+    :style="cardStyle"
+  >
     <div class="header" :class="{ compact: isCompact }">
       <div class="title-row" v-if="showHeader">
         <span class="title">{{ titleText }}</span>
@@ -197,7 +201,11 @@ const limitedMessages = computed(() => {
   if (!Number.isFinite(limit) || limit <= 0) return list
   return list.slice(0, limit)
 })
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const configSummary = computed(() => {
   const defaults = createDefaultBalanceConfig()
   const t = {
@@ -402,6 +410,9 @@ function computedPeriodTag(idx: number) {
   flex-direction:column;
   gap:var(--widget-gap, 10px);
   font-size:calc(14px * var(--widget-scale, 1));
+}
+.balance-card--compact{
+  justify-content:center;
 }
 .header{
   display:flex;

@@ -70,42 +70,273 @@
         </div>
       </div>
 
-      <!-- ── Setup card ── -->
+      <!-- ── Quick settings card ── -->
+      <div class="qs">
+        <div class="qs-hd">
+          <div class="ew">Quick settings</div>
+        </div>
+
+        <!-- Theme -->
+        <div class="qs-row">
+          <span class="qs-label">Theme</span>
+          <div class="seg w3">
+            <button
+              v-for="opt in (['auto', 'light', 'dark'] as const)"
+              :key="opt"
+              type="button"
+              :class="{ on: themePreference === opt }"
+              @click="$emit('update:theme-preference', opt)"
+            >{{ opt[0].toUpperCase() + opt.slice(1) }}</button>
+          </div>
+        </div>
+
+        <!-- Scope -->
+        <div class="qs-row">
+          <span class="qs-label">Scope</span>
+          <div class="seg w2">
+            <button type="button" :class="{ on: preferredScope === 'calendar' }" @click="preferredScope = 'calendar'">Calendar</button>
+            <button type="button" :class="{ on: preferredScope === 'category' }" @click="preferredScope = 'category'">Category</button>
+          </div>
+        </div>
+
+        <!-- Background -->
+        <div class="qs-row">
+          <span class="qs-label">Background</span>
+          <div class="qs-color">
+            <label class="qs-swatch" :title="globalAppBg || defaultAppBg + ' (theme default)'">
+              <span class="qs-swatch-dot" :class="{ 'qs-swatch-dot--none': !globalAppBg }" :style="{ background: globalAppBg || defaultAppBg }" />
+              <input
+                type="color"
+                :value="globalAppBg ?? defaultAppBg"
+                @input="onColorInput"
+                @change="onColorInput"
+              />
+            </label>
+            <button
+              class="qs-clear"
+              type="button"
+              :disabled="!globalAppBg"
+              @click="globalAppBg = null"
+              title="Follow theme"
+            >Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Goals editor (collapsible) ── -->
+      <div v-if="targets" class="ge">
+        <button
+          class="sc-toggle"
+          type="button"
+          :aria-expanded="goalsExpanded"
+          @click="goalsExpanded = !goalsExpanded"
+        >
+          <div>
+            <div class="ew">Weekly goals</div>
+            <div class="sc-title">
+              <span>Goals</span>
+              <span class="sc-progress">{{ formatHours(targets.totalHours ?? 0) }} h/wk</span>
+            </div>
+          </div>
+          <span class="sc-caret" :class="{ 'sc-caret--open': goalsExpanded }" aria-hidden="true">
+            <svg viewBox="0 0 12 7" width="12" height="7" fill="none">
+              <path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+        <div v-if="goalsExpanded" class="sc-body">
+          <label class="ge-row">
+            <span class="ge-label">Total</span>
+            <div class="ge-input">
+              <input
+                type="number"
+                min="0"
+                max="1000"
+                step="0.5"
+                :value="targets.totalHours ?? 0"
+                @input="(e) => { const v = readHours(e); v !== null && emit('update-total-hours', v) }"
+              />
+              <span class="ge-unit">h/wk</span>
+            </div>
+          </label>
+
+          <div class="ge-cats">
+            <div
+              v-for="cat in targets.categories || []"
+              :key="cat.id"
+              class="ge-catcard"
+              :class="{ 'ge-catcard--open': openCategoryId === cat.id }"
+            >
+              <div class="ge-catcard__head">
+                <input
+                  class="ge-catlabel"
+                  type="text"
+                  :value="labelDraft(cat.id, cat.label)"
+                  placeholder="Category"
+                  aria-label="Category name"
+                  @input="(e) => onCategoryLabelInput(cat.id, (e.target as HTMLInputElement).value)"
+                  @change="(e) => onCategoryLabelCommit(cat.id, (e.target as HTMLInputElement).value)"
+                  @blur="(e) => onCategoryLabelCommit(cat.id, (e.target as HTMLInputElement).value)"
+                  @keydown.enter.prevent="($event.target as HTMLInputElement).blur()"
+                />
+                <div class="ge-catcard__controls">
+                  <div class="ge-input ge-input--sm">
+                    <input
+                      type="number"
+                      min="0"
+                      max="1000"
+                      step="0.5"
+                      :value="cat.targetHours ?? 0"
+                      @input="(e) => { const v = readHours(e); v !== null && emit('update-category-target', { id: cat.id, value: v }) }"
+                    />
+                    <span class="ge-unit">h</span>
+                  </div>
+                  <ColorPickerPopover
+                    class="ge-color"
+                    :model-value="cat.color || '#2563EB'"
+                    @update:model-value="(c) => patchCategory(cat.id, { color: c || null })"
+                  >
+                    <span class="ge-color__spacer" aria-hidden="true" />
+                  </ColorPickerPopover>
+                  <button
+                    class="ge-catcard__toggle"
+                    type="button"
+                    :aria-expanded="openCategoryId === cat.id"
+                    :aria-label="openCategoryId === cat.id ? 'Collapse calendars' : 'Expand calendars'"
+                    :title="calendarsForCategory(cat.id).length + ' calendar' + (calendarsForCategory(cat.id).length === 1 ? '' : 's')"
+                    @click="toggleCategory(cat.id)"
+                  >
+                    <span class="ge-catcard__count">{{ calendarsForCategory(cat.id).length }}</span>
+                    <svg
+                      class="ge-caret"
+                      :class="{ 'ge-caret--open': openCategoryId === cat.id }"
+                      viewBox="0 0 12 7" width="10" height="6" fill="none"
+                    >
+                      <path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <button
+                    class="ge-catcard__remove"
+                    type="button"
+                    :disabled="(targets.categories || []).length <= 1"
+                    aria-label="Remove category"
+                    title="Remove category"
+                    @click="removeCategory(cat.id)"
+                  >×</button>
+                </div>
+              </div>
+
+              <div v-if="openCategoryId === cat.id" class="ge-catcard__body">
+                <div
+                  v-for="cal in calendarsForCategory(cat.id)"
+                  :key="cal.id"
+                  class="ge-calrow"
+                >
+                  <span
+                    class="ge-dot"
+                    :style="{ background: cal.color || 'var(--brand, #2563eb)' }"
+                    aria-hidden="true"
+                  />
+                  <span class="ge-cal-label" :title="cal.displayname">{{ cal.displayname }}</span>
+                  <div class="ge-input ge-input--sm">
+                    <input
+                      type="number"
+                      min="0"
+                      max="1000"
+                      step="0.25"
+                      :value="calendarTarget(cal.id)"
+                      @input="(e) => { const v = readHours(e); v !== null && emit('set-calendar-target', { id: cal.id, value: v }) }"
+                    />
+                    <span class="ge-unit">h</span>
+                  </div>
+                  <button
+                    class="ge-catcard__remove"
+                    type="button"
+                    aria-label="Unassign calendar"
+                    :title="'Unassign ' + cal.displayname"
+                    @click="onAssignCalendar(cal.id, '')"
+                  >×</button>
+                </div>
+
+                <label
+                  v-if="assignableCalendars(cat.id).length"
+                  class="ge-add-cal"
+                >
+                  <span>+ Add calendar</span>
+                  <select
+                    :value="''"
+                    @change="onAddCalendarChange(cat.id, $event.target as HTMLSelectElement)"
+                  >
+                    <option value="">Pick calendar…</option>
+                    <option
+                      v-for="opt in assignableCalendars(cat.id)"
+                      :key="cat.id + '-' + opt.id"
+                      :value="opt.id"
+                    >{{ opt.displayname }}</option>
+                  </select>
+                </label>
+                <div v-else class="ge-hint">No unassigned calendars left.</div>
+              </div>
+            </div>
+          </div>
+
+          <button class="ge-add" type="button" @click="addCategory">
+            + Add category
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Setup card (collapsible) ── -->
       <div class="sc">
-        <div class="sc-hd">
+        <button
+          class="sc-toggle"
+          type="button"
+          :aria-expanded="setupExpanded"
+          @click="setupExpanded = !setupExpanded"
+        >
           <div>
             <div class="ew">Guided setup</div>
-            <div class="sc-title">Dashboard profile</div>
+            <div class="sc-title">
+              <span>Setup</span>
+              <span class="sc-progress">{{ setupSummary }}</span>
+            </div>
           </div>
           <span v-if="dashboardMode === 'pro'" class="badge">Pro</span>
           <span v-else-if="dashboardMode === 'standard'" class="badge badge--std">Std</span>
-        </div>
-
-        <button class="wiz" type="button" @click="$emit('rerun-onboarding')">
-          Open setup wizard
+          <span class="sc-caret" :class="{ 'sc-caret--open': setupExpanded }" aria-hidden="true">
+            <svg viewBox="0 0 12 7" width="12" height="7" fill="none">
+              <path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
         </button>
 
-        <ol class="steps">
-          <li
-            v-for="step in STEPS"
-            :key="step.id"
-            class="step"
-            :class="guidedHintStatuses?.[step.id] ?? 'dim'"
-            @click="$emit('rerun-onboarding', step.id)"
-            role="button"
-            :title="'Go to ' + step.label"
-          >
-            <span class="sn">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
-                <path :d="step.icon" />
-              </svg>
-            </span>
-            <div class="sb-txt">
-              <strong>{{ step.label }}</strong>
-              <small>{{ guidedHints?.[step.id] || step.placeholder }}</small>
-            </div>
-          </li>
-        </ol>
+        <div v-if="setupExpanded" class="sc-body">
+          <button class="wiz" type="button" @click="$emit('rerun-onboarding')">
+            Open setup wizard
+          </button>
+
+          <ol class="steps">
+            <li
+              v-for="step in STEPS"
+              :key="step.id"
+              class="step"
+              :class="guidedHintStatuses?.[step.id] ?? 'dim'"
+              @click="$emit('rerun-onboarding', step.id)"
+              role="button"
+              :title="'Go to ' + step.label"
+            >
+              <span class="sn">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+                  <path :d="step.icon" />
+                </svg>
+              </span>
+              <div class="sb-txt">
+                <strong>{{ step.label }}</strong>
+                <small>{{ guidedHints?.[step.id] || step.placeholder }}</small>
+              </div>
+            </li>
+          </ol>
+        </div>
       </div>
 
       <!-- ── Bottom dock ── -->
@@ -145,9 +376,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { NcAppNavigation } from '@nextcloud/vue'
 import { getWeekNumber, parseDateKey } from '../../services/dateTime'
+import { preferredScope, globalAppBg, activeThemeMode } from '../../../composables/useGlobalPreferences'
+import type { TargetCategoryConfig, TargetsConfig } from '../../services/targets'
+import ColorPickerPopover from '../ColorPickerPopover.vue'
+
+type SidebarCalendar = { id: string; displayname: string; color?: string }
+
+const defaultAppBg = computed(() => (activeThemeMode.value === 'dark' ? '#111111' : '#efefef'))
 
 const MDI_LAYERS = "M12,16L19.36,10.27L21,9L12,2L3,9L4.63,10.27M12,18.54L4.62,12.81L3,14.07L12,21.07L21,14.07L19.37,12.8L12,18.54Z"
 const MDI_CALENDAR_MULTIPLE = "M21,17V8H7V17H21M21,3A2,2 0 0,1 23,5V17A2,2 0 0,1 21,19H7C5.89,19 5,18.1 5,17V5A2,2 0 0,1 7,3H8V1H10V3H18V1H20V3H21M3,21H17V23H3C1.89,23 1,22.1 1,21V9H3V21M19,15H15V11H19V15Z"
@@ -174,13 +412,16 @@ const props = defineProps<{
   from: string
   to: string
   navToggleLabel: string
-  navToggleIcon: string
   dashboardMode?: 'quick' | 'standard' | 'pro'
   guidedHints?: Partial<Record<'strategy' | 'calendars' | 'deck' | 'goals' | 'preferences' | 'dashboard' | 'review', string>>
   releaseNotesAvailable?: boolean
-  releaseNotesOpen?: boolean
   lastSync?: string | null
   guidedHintStatuses?: Partial<Record<'strategy' | 'calendars' | 'deck' | 'goals' | 'preferences' | 'dashboard' | 'review', 'done' | 'warn' | 'dim' | 'skip'>>
+  themePreference?: 'auto' | 'light' | 'dark'
+  targets?: TargetsConfig | null
+  calendars?: SidebarCalendar[]
+  groupsById?: Record<string, number>
+  currentTargets?: Record<string, number>
 }>()
 
 const emit = defineEmits([
@@ -192,6 +433,12 @@ const emit = defineEmits([
   'open-release-notes',
   'open-shortcuts',
   'rerun-onboarding',
+  'update:theme-preference',
+  'update-total-hours',
+  'update-category-target',
+  'update-targets-config',
+  'set-group',
+  'set-calendar-target',
 ])
 
 const rangeEyebrow = computed(() => props.range === 'month' ? 'This month' : 'This week')
@@ -210,6 +457,129 @@ const syncLabel = computed(() => {
   if (props.isLoading) return 'Syncing…'
   return props.lastSync ?? 'Ready'
 })
+
+// Collapsible setup card — starts expanded only when steps still need attention.
+const setupDone = computed(() => {
+  const statuses = props.guidedHintStatuses ?? {}
+  return STEPS.every((s) => {
+    const st = statuses[s.id]
+    return st === 'done' || st === 'skip'
+  })
+})
+const setupSummary = computed(() => {
+  const statuses = props.guidedHintStatuses ?? {}
+  const done = STEPS.filter((s) => statuses[s.id] === 'done' || statuses[s.id] === 'skip').length
+  return `${done} of ${STEPS.length} ready`
+})
+const setupExpanded = ref(!setupDone.value)
+watch(setupDone, (isDone, wasDone) => {
+  // Auto-collapse the first time the checklist becomes complete; leave user
+  // control after that.
+  if (isDone && !wasDone) setupExpanded.value = false
+})
+
+function onColorInput(event: Event) {
+  const value = (event.target as HTMLInputElement).value
+  if (typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)) {
+    globalAppBg.value = value
+  }
+}
+
+// Goals editor — collapsed by default. The parent owns persistence
+// via useDashboardSelection; this component only emits.
+const goalsExpanded = ref(false)
+const openCategoryId = ref('')
+const labelDrafts = ref<Record<string, string>>({})
+
+const categories = computed<TargetCategoryConfig[]>(() => props.targets?.categories ?? [])
+
+// calendar id → category id, built once per change.
+const catByCalendar = computed(() => {
+  const groupToCat = new Map<number, string>()
+  for (const cat of categories.value) for (const g of cat.groupIds ?? []) groupToCat.set(g, cat.id)
+  const out: Record<string, string> = {}
+  const groups = props.groupsById ?? {}
+  for (const cal of props.calendars ?? []) out[cal.id] = groupToCat.get(groups[cal.id] ?? 0) ?? ''
+  return out
+})
+
+const readHours = (e: Event) => {
+  const n = Number((e.target as HTMLInputElement).value)
+  return Number.isFinite(n) ? Math.max(0, Math.min(1000, n)) : null
+}
+const formatHours = (v: number) => (Math.round((Number(v) || 0) * 10) / 10).toString()
+
+const calendarsForCategory = (id: string) =>
+  (props.calendars ?? []).filter((c) => catByCalendar.value[c.id] === id)
+
+const assignableCalendars = (id: string) =>
+  (props.calendars ?? []).filter((c) => {
+    const cur = catByCalendar.value[c.id]
+    return !cur || cur === id
+  })
+
+const calendarTarget = (calId: string) =>
+  Math.round((Number(props.currentTargets?.[calId]) || 0) * 100) / 100
+
+const toggleCategory = (id: string) => { openCategoryId.value = openCategoryId.value === id ? '' : id }
+
+const patchCategories = (next: TargetCategoryConfig[]) => {
+  if (props.targets) emit('update-targets-config', { ...props.targets, categories: next })
+}
+const patchCategory = (id: string, patch: Partial<TargetCategoryConfig>) =>
+  patchCategories(categories.value.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+
+const onAssignCalendar = (calId: string, categoryId: string) => {
+  const target = categoryId ? categories.value.find((c) => c.id === categoryId) : null
+  const groupId = target?.groupIds?.find((n) => n > 0) ?? 0
+  emit('set-group', { id: calId, groupId })
+}
+const onAddCalendarChange = (categoryId: string, select: HTMLSelectElement) => {
+  if (!select.value) return
+  onAssignCalendar(select.value, categoryId)
+  select.value = ''
+}
+
+const addCategory = () => {
+  if (!props.targets) return
+  const used = new Set<number>()
+  for (const c of categories.value) for (const g of c.groupIds ?? []) used.add(g)
+  let groupId = 0
+  for (let i = 1; i <= 9; i += 1) if (!used.has(i)) { groupId = i; break }
+  const id = `cat_${Date.now().toString(36)}`
+  patchCategories([...categories.value, {
+    id,
+    label: `Category ${categories.value.length + 1}`,
+    targetHours: 0,
+    includeWeekend: false,
+    paceMode: 'days_only',
+    color: null,
+    groupIds: groupId ? [groupId] : [],
+  }])
+  openCategoryId.value = id
+}
+const removeCategory = (id: string) => {
+  patchCategories(categories.value.filter((c) => c.id !== id))
+  if (openCategoryId.value === id) openCategoryId.value = ''
+}
+
+// Label draft: normalizeTargetsConfig trims + falls back to capitalize(id)
+// on every emit, so live-committing keystrokes fights the input. Buffer
+// per row while typing; commit on blur / Enter / change.
+const labelDraft = (id: string, actual: string) =>
+  labelDrafts.value[id] !== undefined ? labelDrafts.value[id] : actual
+const onCategoryLabelInput = (id: string, v: string) => {
+  labelDrafts.value = { ...labelDrafts.value, [id]: v }
+}
+const onCategoryLabelCommit = (id: string, v: string) => {
+  const trimmed = v.trim()
+  const next = { ...labelDrafts.value }
+  delete next[id]
+  labelDrafts.value = next
+  const cur = categories.value.find((c) => c.id === id)
+  if (!trimmed || !cur || cur.label === trimmed) return
+  patchCategory(id, { label: trimmed })
+}
 </script>
 
 <style scoped>
@@ -275,21 +645,40 @@ const syncLabel = computed(() => {
 
 /* ── Range hero card ── */
 .rc {
-  border: 1px solid color-mix(in oklab, var(--brand), transparent 82%);
+  border: 1px solid color-mix(in oklab, var(--brand), transparent 78%);
   border-radius: 22px;
   padding: 17px 16px 15px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  box-shadow:
-    0 10px 24px rgba(15, 23, 42, .08),
-    inset 0 1px 0 rgba(255, 255, 255, .45);
+  box-shadow: none;
 }
 .hero {
+  background-color: var(--card, #fff);
+  background-image: linear-gradient(180deg,
+    color-mix(in oklab, var(--card, #fff), #ffffff 5%) 0%,
+    var(--card, #fff) 65%);
+}
+
+/* Dark-mode-only: put a tasteful gradient sheen back on every sidebar
+   card. Light mode stays flat because the same treatment reads as a
+   muddy grey wash there. Skipped entirely when the user has picked a
+   custom app bg so the chosen color paints the sidebar cleanly. */
+:global(#opsdash.opsdash-theme-dark:not(.has-app-bg)) .hero {
   background:
-    radial-gradient(circle at 112% -8%, color-mix(in oklab, var(--brand), transparent 82%), transparent 54%),
-    linear-gradient(180deg, color-mix(in oklab, var(--card, #fff), var(--brand) 3%), var(--card, #fff)),
-    var(--card, #fff);
+    radial-gradient(circle at 120% -10%, color-mix(in oklab, var(--brand), transparent 76%), transparent 52%),
+    linear-gradient(180deg, color-mix(in oklab, var(--card), var(--brand) 6%), var(--card));
+}
+:global(#opsdash.opsdash-theme-dark:not(.has-app-bg)) .qs,
+:global(#opsdash.opsdash-theme-dark:not(.has-app-bg)) .ge,
+:global(#opsdash.opsdash-theme-dark:not(.has-app-bg)) .sc {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--card), var(--brand) 4%), var(--card));
+}
+:global(#opsdash.opsdash-theme-dark:not(.has-app-bg)) .dock {
+  background:
+    radial-gradient(circle at 50% -30%, color-mix(in oklab, var(--brand), transparent 82%), transparent 62%),
+    linear-gradient(180deg, color-mix(in oklab, var(--card), var(--brand) 3%), color-mix(in oklab, var(--card), var(--fg) 4%));
 }
 
 .ew {
@@ -309,21 +698,16 @@ const syncLabel = computed(() => {
   color: var(--fg, #0f172a);
 }
 
-.rc-sub {
-  font-size: 12px;
-  color: var(--muted, #64748b);
-  margin-top: -5px;
-}
-
 /* Segmented pill */
 .seg {
   display: grid;
   gap: 3px;
   padding: 3px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, .06);
+  background: color-mix(in oklab, var(--fg, #0f172a) 6%, transparent);
 }
 .seg.w2 { grid-template-columns: 1fr 1fr; }
+.seg.w3 { grid-template-columns: 1fr 1fr 1fr; }
 
 .seg button {
   appearance: none;
@@ -435,34 +819,395 @@ const syncLabel = computed(() => {
 }
 .btn-ref:disabled { opacity: .5; cursor: default; }
 
-/* ── Setup card ── */
-.sc {
-  border: 1px solid var(--line, #e2e8f0);
-  border-radius: 22px;
-  padding: 15px;
+/* ── Quick settings card ── */
+.qs {
+  border: 1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 84%);
+  border-radius: 18px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 10px;
+  background-color: var(--card, #fff);
+  background-image: linear-gradient(180deg,
+    color-mix(in oklab, var(--card, #fff), #ffffff 4%) 0%,
+    var(--card, #fff) 62%);
+  box-shadow: none;
+}
+.qs-hd { display: flex; align-items: center; justify-content: space-between; }
+.qs-row {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.qs-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted, #64748b);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.qs-color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.qs-swatch {
+  position: relative;
+  width: 34px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid var(--line, #e2e8f0);
+  overflow: hidden;
+  cursor: pointer;
+  display: block;
+}
+.qs-swatch input[type=color] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+}
+.qs-swatch-dot {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 9px;
   background: var(--card, #fff);
-  box-shadow:
-    0 10px 22px rgba(15, 23, 42, .06),
-    inset 0 1px 0 rgba(255, 255, 255, .4);
+}
+.qs-swatch-dot--none {
+  background:
+    linear-gradient(45deg, transparent 45%, var(--line, #e5e7eb) 45%, var(--line, #e5e7eb) 55%, transparent 55%),
+    var(--card, #fff);
+}
+.qs-clear {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted, #64748b);
+  background: transparent;
+  border: 1px solid var(--line, #e2e8f0);
+  cursor: pointer;
+  appearance: none;
+}
+.qs-clear:disabled { opacity: .4; cursor: default; }
+.qs-clear:hover:not(:disabled) { background: color-mix(in oklab, var(--fg, #0f172a) 5%, transparent); color: var(--fg, #0f172a); }
+
+/* ── Goals editor ── */
+.ge {
+  border: 1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 84%);
+  border-radius: 18px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: var(--card, #fff);
+  background-image: linear-gradient(180deg,
+    color-mix(in oklab, var(--card, #fff), #ffffff 4%) 0%,
+    var(--card, #fff) 62%);
+  box-shadow: none;
+}
+.ge-row {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.ge-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted, #64748b);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.ge-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklab, var(--fg, #0f172a) 15%, transparent);
+  flex-shrink: 0;
+}
+.ge-cal-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg, #0f172a);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+}
+.ge-cats {
+  display: flex;
+  flex-direction: column;
+}
+.ge-catcard {
+  padding: 6px 4px;
+  border-bottom: 1px solid color-mix(in oklab, var(--fg, #0f172a) 6%, transparent);
+}
+.ge-catcard:last-child { border-bottom: 0; }
+.ge-catcard--open { background: color-mix(in oklab, var(--brand, #2563eb) 5%, transparent); }
+.ge-catcard__head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px 4px;
+}
+.ge-catcard__controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.ge-color :deep(.cpp-trigger) {
+  padding: 3px;
+  gap: 0;
+  border-radius: 999px;
+  border-color: color-mix(in oklab, var(--fg, #0f172a) 14%, transparent);
+}
+.ge-color :deep(.cpp-dot) {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+.ge-color__spacer { display: none; }
+.ge-catlabel {
+  min-width: 0;
+  width: 100%;
+  height: 24px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg, #0f172a);
+  cursor: text;
+}
+.ge-catlabel:hover {
+  border-color: color-mix(in oklab, var(--fg, #0f172a) 12%, transparent);
+}
+.ge-catlabel:focus {
+  outline: none;
+  border-color: color-mix(in oklab, var(--brand, #2563eb) 45%, transparent);
+  background: color-mix(in oklab, var(--card, #fff) 96%, var(--fg, #0f172a) 3%);
+}
+.ge-catlabel::placeholder {
+  color: var(--muted, #64748b);
+  font-weight: 600;
+}
+.ge-catcard__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  color: var(--muted, #64748b);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  appearance: none;
+}
+.ge-catcard__toggle:hover { color: var(--fg, #0f172a); }
+.ge-catcard__count { font-variant-numeric: tabular-nums; }
+.ge-caret { transition: transform .18s ease; }
+.ge-caret--open { transform: rotate(180deg); }
+.ge-catcard__remove {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted, #64748b);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ge-catcard__remove:hover:not(:disabled) {
+  color: var(--neg, #ef4444);
+  background: color-mix(in oklab, var(--neg, #ef4444) 10%, transparent);
+}
+.ge-catcard__remove:disabled { opacity: .35; cursor: default; }
+.ge-catcard__body {
+  padding: 6px 4px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ge-calrow {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+}
+.ge-add-cal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 6px;
+  border: 0;
+  color: var(--muted, #64748b);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  position: relative;
+}
+.ge-add-cal:hover { color: var(--brand, #2563eb); }
+.ge-add-cal select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.ge-hint {
+  font-size: 11px;
+  color: var(--muted, #64748b);
+  padding: 4px 6px;
+}
+.ge-add {
+  width: 100%;
+  height: 26px;
+  border: 0;
+  background: transparent;
+  color: var(--brand, #2563eb);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  appearance: none;
+  text-align: left;
+  padding: 0 4px;
+}
+.ge-add:hover { text-decoration: underline; }
+.ge-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+  padding: 2px 8px;
+  background: var(--card, #fff);
+  min-width: 0;
+}
+.ge-input--sm {
+  border-color: transparent;
+  background: transparent;
+}
+.ge-input--sm:focus-within {
+  border-color: color-mix(in oklab, var(--brand, #2563eb) 40%, transparent);
+  background: color-mix(in oklab, var(--card, #fff) 96%, var(--fg, #0f172a) 3%);
+}
+.ge-input input[type="number"] {
+  width: 56px;
+  border: 0;
+  background: transparent;
+  color: var(--fg, #0f172a);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  padding: 4px 0;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.ge-input--sm { padding: 1px 6px; }
+.ge-input--sm input[type="number"] { width: 40px; font-size: 11px; }
+.ge-input input[type="number"]::-webkit-outer-spin-button,
+.ge-input input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.ge-input input[type="number"]:focus {
+  outline: none;
+}
+.ge-unit {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted, #64748b);
+  letter-spacing: .04em;
+  text-transform: uppercase;
 }
 
-.sc-hd {
+/* ── Setup card ── */
+.sc {
+  border: 1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 84%);
+  border-radius: 18px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: var(--card, #fff);
+  background-image: linear-gradient(180deg,
+    color-mix(in oklab, var(--card, #fff), #ffffff 4%) 0%,
+    var(--card, #fff) 62%);
+  box-shadow: none;
+}
+
+.sc-toggle {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+  border: 0;
+  background: transparent;
+  padding: 10px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
 }
+.sc-toggle:hover { background: color-mix(in oklab, var(--fg, #0f172a) 4%, transparent); }
 
 .sc-title {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 900;
-  letter-spacing: -.035em;
+  letter-spacing: -.02em;
   line-height: 1.1;
   margin-top: 3px;
   color: var(--fg, #0f172a);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.sc-progress {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted, #64748b);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.sc-caret {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  color: var(--muted, #64748b);
+  transition: transform .18s ease;
+  flex-shrink: 0;
+}
+.sc-caret--open { transform: rotate(180deg); }
+
+.sc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 0 10px 10px;
 }
 
 .badge {
@@ -485,8 +1230,8 @@ const syncLabel = computed(() => {
 
 .wiz {
   width: 100%;
-  height: 36px;
-  border-radius: 12px;
+  height: 34px;
+  border-radius: 11px;
   background: linear-gradient(135deg, var(--brand, #2563eb), color-mix(in oklab, var(--brand, #2563eb), #1d4ed8 40%));
   color: #fff;
   font-size: 12px;
@@ -518,12 +1263,12 @@ const syncLabel = computed(() => {
   align-items: center;
   padding: 7px 9px;
   border-radius: 11px;
-  background: rgba(0, 0, 0, .02);
+  background: color-mix(in oklab, var(--fg, #0f172a) 3%, transparent);
   border: 1px solid transparent;
   min-width: 0;
   cursor: pointer;
 }
-.step:hover { background: rgba(0, 0, 0, .04); }
+.step:hover { background: color-mix(in oklab, var(--fg, #0f172a) 5%, transparent); }
 
 .step.done {
   background: rgba(22, 163, 74, .05);
@@ -557,7 +1302,7 @@ const syncLabel = computed(() => {
 }
 .step.done .sn { background: var(--green, #16a34a); }
 .step.warn .sn { background: var(--amber, #d97706); }
-.step.dim  .sn { background: rgba(0, 0, 0, .08); color: var(--muted, #64748b); }
+.step.dim  .sn { background: color-mix(in oklab, var(--fg, #0f172a) 9%, transparent); color: var(--muted, #64748b); }
 .step.skip .sn { background: rgba(100, 116, 139, .18); color: var(--muted, #64748b); }
 
 /* Step text */
@@ -581,18 +1326,26 @@ const syncLabel = computed(() => {
 
 /* ── Dock ── */
 .dock {
-  border: 1px solid var(--line, #e2e8f0);
+  border: 1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 84%);
   border-radius: 20px;
   padding: 7px;
-  background:
-    linear-gradient(180deg, color-mix(in oklab, var(--card, #fff), var(--brand) 2%), rgba(0, 0, 0, .015));
+  background-color: var(--card, #fff);
+  background-image: linear-gradient(180deg,
+    color-mix(in oklab, var(--card, #fff), #ffffff 4%) 0%,
+    color-mix(in oklab, var(--card, #fff), var(--brand, #2563eb) 3%) 100%);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   margin-top: auto;
-  box-shadow:
-    0 10px 24px rgba(15, 23, 42, .05),
-    inset 0 1px 0 rgba(255, 255, 255, .35);
+  box-shadow: none;
+}
+:global(#opsdash.has-app-bg) .hero,
+:global(#opsdash.has-app-bg) .qs,
+:global(#opsdash.has-app-bg) .ge,
+:global(#opsdash.has-app-bg) .sc,
+:global(#opsdash.has-app-bg) .dock {
+  background-image: none;
+  background-color: var(--card, #fff);
 }
 
 .dk-btn {
@@ -614,5 +1367,5 @@ const syncLabel = computed(() => {
 .dk-btn b { font-size: 17px; line-height: 1; }
 .dk-btn.on { color: var(--brand, #2563eb); background: color-mix(in oklab, var(--brand), transparent 93%); }
 .dk-btn:disabled { opacity: .4; cursor: default; }
-.dk-btn:hover:not(:disabled) { background: rgba(0, 0, 0, .04); }
+.dk-btn:hover:not(:disabled) { background: color-mix(in oklab, var(--fg, #0f172a) 5%, transparent); }
 </style>

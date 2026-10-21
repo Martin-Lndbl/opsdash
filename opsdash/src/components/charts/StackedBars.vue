@@ -5,15 +5,19 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ctxFor, themeVar } from '../../services/charts'
+import { ctxFor, drawChartTooltip, paintPolishedBar, themeVar } from '../../services/charts'
 import { formatDateOnly, getFirstDayOfWeek, parseDateKey } from '../../services/dateTime'
+import { globalAppBg, activeThemeMode } from '../../../composables/useGlobalPreferences'
 
-const props = defineProps<{ stacked?: any, colorsById: Record<string,string>, showLabels?: boolean, highlightId?: string | null }>()
+const props = defineProps<{ stacked?: any, colorsById: Record<string,string>, showLabels?: boolean, highlightId?: string | null, colorStyle?: 'fill' | 'outline'
+  colorTint?: number }>()
 const cv = ref<HTMLCanvasElement|null>(null)
 let ro: ResizeObserver | null = null
 let mo: MutationObserver | null = null
-let geometry: { segments: Array<{ x: number; y: number; width: number; height: number; id: string }> } | null = null
+let geometry: { segments: Array<{ x: number; y: number; width: number; height: number; id: string; label: string; value: number; forecast?: boolean }> } | null = null
 const hoverId = ref<string | null>(null)
+const hoverPos = ref<{ x: number; y: number } | null>(null)
+let hoverInfo: { label: string; value: number; forecast?: boolean } | null = null
 
 function drawOutlinedText(
   ctx: CanvasRenderingContext2D,
@@ -124,12 +128,10 @@ function draw(){
   const fg=themeVar(cvEl, '--fg', '#0f172a')
   const bg=themeVar(cvEl, '--bg', '#ffffff')
   ctx.clearRect(0,0,W,H)
-  ctx.strokeStyle=line; ctx.lineWidth=1
-  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); ctx.moveTo(x0,y0); ctx.lineTo(x0,pad); ctx.stroke()
 
   const stacked:any = props.stacked
   if (stacked && stacked.labels && stacked.series) {
-    const segments: Array<{ x: number; y: number; width: number; height: number; id: string }> = []
+    const segments: Array<{ x: number; y: number; width: number; height: number; id: string; label: string; value: number; forecast?: boolean }> = []
     let labels:string[] = stacked.labels||[]
     let series:any[] = stacked.series||[]
     // Reorder to start with the user's week start if labels represent a 7-day week
@@ -180,8 +182,7 @@ function draw(){
         if (h>0.5) {
           ctx.save()
           if (isDim) ctx.globalAlpha = 0.25
-          ctx.fillStyle = col
-          ctx.fillRect(x, y, bw, h)
+          paintPolishedBar(ctx, x, y, bw, h, col, props.colorStyle ?? 'fill', 'segment', (props.colorTint ?? 0) / 100)
           if (isMatch) {
             ctx.strokeStyle = 'rgba(255,255,255,0.9)'
             ctx.lineWidth = 1.5
@@ -223,7 +224,7 @@ function draw(){
           }
         }
         if (h > 0.5) {
-          segments.push({ x, y, width: bw, height: h, id })
+          segments.push({ x, y, width: bw, height: h, id, label: String(s.name ?? s.label ?? id), value: v })
         }
         colActual += v
       })
@@ -251,6 +252,16 @@ function draw(){
           baseColor: baseCol,
           variant: colActual > 0.01 ? 'mixed' : 'future',
           alphaScale: isDim ? 0.25 : 1,
+        })
+        segments.push({
+          x,
+          y: yForecast,
+          width: bw,
+          height: hf,
+          id,
+          label: String(s.name ?? s.label ?? id),
+          value: vf,
+          forecast: true,
         })
       })
       if (props.showLabels !== false && segmentLabels.length) {
@@ -329,6 +340,21 @@ function draw(){
       })
     }
     geometry = { segments }
+    if (hoverInfo && hoverPos.value) {
+      const tooltipText = hoverInfo.forecast
+        ? `${hoverInfo.label}: ~${hoverInfo.value.toFixed(1)}h (forecast)`
+        : `${hoverInfo.label}: ${hoverInfo.value.toFixed(1)}h`
+      drawChartTooltip(ctx, {
+        cursorX: hoverPos.value.x,
+        cursorY: hoverPos.value.y,
+        canvasWidth: W,
+        canvasHeight: H,
+        text: tooltipText,
+        bg: bg,
+        fg: fg,
+        scale: textScale,
+      })
+    }
     return
   }
   geometry = null
@@ -368,6 +394,9 @@ watch(()=>props.stacked, ()=> draw(), { deep:true })
 watch(()=>props.colorsById, ()=> draw(), { deep:true })
 watch(()=>props.showLabels, ()=> draw())
 watch(()=>props.highlightId, ()=> draw())
+watch(()=>props.colorStyle, ()=> draw())
+watch(()=>props.colorTint, ()=> draw())
+watch([globalAppBg, activeThemeMode], () => draw())
 
 function onMouseMove(event: MouseEvent) {
   const cvEl = cv.value
@@ -376,22 +405,26 @@ function onMouseMove(event: MouseEvent) {
   const x = event.clientX - rect.left
   const y = event.clientY - rect.top
   let nextId: string | null = null
+  let nextInfo: { label: string; value: number; forecast?: boolean } | null = null
   for (let i = geometry.segments.length - 1; i >= 0; i -= 1) {
     const seg = geometry.segments[i]
     if (x >= seg.x && x <= seg.x + seg.width && y >= seg.y && y <= seg.y + seg.height) {
       nextId = seg.id
+      nextInfo = { label: seg.label, value: seg.value, forecast: seg.forecast }
       break
     }
   }
-  if (nextId !== hoverId.value) {
-    hoverId.value = nextId
-    draw()
-  }
+  hoverPos.value = { x, y }
+  hoverId.value = nextId
+  hoverInfo = nextInfo
+  draw()
 }
 
 function onMouseLeave() {
-  if (hoverId.value) {
+  if (hoverId.value || hoverPos.value) {
     hoverId.value = null
+    hoverPos.value = null
+    hoverInfo = null
     draw()
   }
 }

@@ -1,5 +1,5 @@
 <template>
-  <div id="opsdash" class="opsdash" :class="[{ 'is-nav-collapsed': !navOpen }, opsdashThemeClass]">
+  <div id="opsdash" class="opsdash" :class="[{ 'is-nav-collapsed': !navOpen, 'has-app-bg': hasCustomAppBg }, opsdashThemeClass]" :style="opsdashRootStyle">
     <OnboardingWizard
       :key="onboardingRunId"
       :visible="onboardingWizardVisible"
@@ -71,13 +71,17 @@
           :from="from"
           :to="to"
           :nav-toggle-label="navToggleLabel"
-          :nav-toggle-icon="navToggleIcon"
           :dashboard-mode="dashboardMode"
           :guided-hints="guidedHints"
           :guided-hint-statuses="guidedStepStatuses"
           :last-sync="lastSyncLabel"
           :release-notes-available="releaseNotesAvailable"
           :release-notes-open="releaseNotesOverlayOpen"
+          :theme-preference="themePreference"
+          :targets="targetsConfig"
+          :calendars="calendars"
+          :groups-by-id="groupsById"
+          :current-targets="currentTargets"
           @load="performLoad"
           @update:range="(v)=>{ range=v as any; offset=0; performLoad() }"
           @update:offset="(v)=>{ offset=v as number; performLoad() }"
@@ -86,6 +90,12 @@
           @open-profiles="openProfilesPanel"
           @open-release-notes="openCurrentReleaseNotes"
           @open-shortcuts="(el) => openShortcuts(el)"
+          @update:theme-preference="(v) => setThemePreference(v)"
+          @update-total-hours="(v) => updateTargetsConfig({ ...targetsConfig, totalHours: Number(v) })"
+          @update-category-target="({ id, value }) => updateTargetsConfig({ ...targetsConfig, categories: (targetsConfig.categories || []).map((c) => c.id === id ? { ...c, targetHours: Number(value) } : c) })"
+          @update-targets-config="(cfg) => updateTargetsConfig(cfg)"
+          @set-group="({ id, groupId }) => setGroup(id, groupId)"
+          @set-calendar-target="({ id, value }) => setTarget(id, value)"
         />
       </template>
 
@@ -296,6 +306,49 @@
                       </span>
                     </div>
 
+                    <div class="vsep" />
+
+                    <!-- Color group — controls the selected widget if any,
+                         otherwise the global app background. -->
+                    <div class="ic-group" :class="{ open: inlineGroupOpen === 'color' }">
+                      <button
+                        class="ic ic-group__trigger"
+                        type="button"
+                        :class="{ on: inlineGroupOpen === 'color' }"
+                        :title="colorPickerTitle"
+                        @click="toggleInlineGroup('color')"
+                      >
+                        <span class="ic-color-dot" :class="{ 'ic-color-dot--none': !activeColorValue }" :style="activeColorValue ? { background: activeColorValue } : {}" />
+                        <span class="ic-lbl">Color</span>
+                      </button>
+                      <div v-if="inlineGroupOpen === 'color'" class="ic-group__rail ic-group__rail--color">
+                        <button
+                          type="button"
+                          class="ic-color-swatch ic-color-reset"
+                          :class="{ on: !activeColorValue }"
+                          :title="inlineSelectedItem ? 'Follow global' : 'Follow theme'"
+                          @click.stop="setActiveColor(null)"
+                        />
+                        <button
+                          v-for="color in CARD_BG_PALETTE"
+                          :key="color"
+                          type="button"
+                          class="ic-color-swatch"
+                          :class="{ on: activeColorValue?.toUpperCase() === color.toUpperCase() }"
+                          :style="{ background: color }"
+                          :title="color"
+                          @click.stop="setActiveColor(color)"
+                        />
+                        <label class="ic-color-custom" title="Custom color">
+                          <input
+                            type="color"
+                            :value="activeColorValue ?? '#ffffff'"
+                            @change.stop="(e) => setActiveColor((e.target as HTMLInputElement).value)"
+                          />
+                        </label>
+                      </div>
+                    </div>
+
                     <template v-if="inlineSelectedItem">
                     <div class="vsep" />
 
@@ -383,45 +436,6 @@
                         <button class="ic ic-sub" type="button" :class="{ on: selectedScale === 'xl' }" :disabled="!inlineSelectedItem" title="Extra large scale" @click="setInlineScale('xl')">
                           <span class="ic-lbl">XL</span>
                         </button>
-                      </div>
-                    </div>
-
-                    <div class="vsep" />
-
-                    <!-- Color group -->
-                    <div class="ic-group" :class="{ open: inlineGroupOpen === 'color' }">
-                      <button class="ic ic-group__trigger" type="button" :class="{ on: inlineGroupOpen === 'color' }" :disabled="!inlineSelectedItem" title="Card background color" @click="toggleInlineGroup('color')">
-                        <span class="ic-color-dot" :class="{ 'ic-color-dot--none': !selectedCardBg }" :style="selectedCardBg ? { background: selectedCardBg } : {}" />
-                        <span class="ic-lbl">Color</span>
-                      </button>
-                      <div v-if="inlineGroupOpen === 'color'" class="ic-group__rail ic-group__rail--color">
-                        <!-- Reset / no color -->
-                        <button
-                          type="button"
-                          class="ic-color-swatch ic-color-reset"
-                          :class="{ on: !selectedCardBg }"
-                          title="Default background"
-                          @click.stop="() => { setSelectedOption('cardBg', null); inlineGroupOpen = null }"
-                        />
-                        <!-- Palette -->
-                        <button
-                          v-for="color in CARD_BG_PALETTE"
-                          :key="color"
-                          type="button"
-                          class="ic-color-swatch"
-                          :class="{ on: selectedCardBg?.toUpperCase() === color.toUpperCase() }"
-                          :style="{ background: color }"
-                          :title="color"
-                          @click.stop="() => { setSelectedOption('cardBg', color); inlineGroupOpen = null }"
-                        />
-                        <!-- Custom -->
-                        <label class="ic-color-custom" title="Custom color">
-                          <input
-                            type="color"
-                            :value="selectedCardBg ?? '#ffffff'"
-                            @change.stop="(e) => { setSelectedOption('cardBg', (e.target as HTMLInputElement).value); inlineGroupOpen = null }"
-                          />
-                        </label>
                       </div>
                     </div>
 
@@ -568,6 +582,7 @@ import AddWidgetModal from './components/layout/AddWidgetModal.vue'
 import WidgetOptionsMenu from './components/layout/WidgetOptionsMenu.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
 import { normalizeReportingConfig, normalizeDeckSettings, type DeckFilterMode } from './services/reporting'
+import { globalAppBg, globalAppBgLight, globalAppBgDark, activeThemeMode, preferredScope } from '../composables/useGlobalPreferences'
 import { ONBOARDING_VERSION, getStrategyDefinitions } from './services/onboarding'
 import {
   createDefaultWidgetTabs,
@@ -641,7 +656,7 @@ type BalanceOverviewSummary = {
   warnings: string[]
 } | null
 
-const { navOpen, toggleNav, navToggleLabel, navToggleIcon } = useSidebarState()
+const { navOpen, toggleNav, navToggleLabel } = useSidebarState()
 const profilesOverlayOpen = ref(false)
 function isCompactViewport() {
   return typeof window !== 'undefined' && window.matchMedia('(max-width: 1100px)').matches
@@ -1091,6 +1106,15 @@ const {
 const opsdashThemeClass = computed(() =>
   effectiveTheme.value === 'dark' ? 'opsdash-theme-dark' : 'opsdash-theme-light',
 )
+const hasCustomAppBg = computed(() => !!globalAppBg.value)
+const opsdashRootStyle = computed(() => {
+  const bg = globalAppBg.value
+  if (!bg) return {}
+  // Cascade the picked color into both the page background and widget
+  // surfaces so sidebar / widget cards match the chosen app bg instead
+  // of showing a contrasting card fill on top of it.
+  return { '--bg': bg, '--card': bg } as Record<string, string>
+})
 
 function openOnboardingFromLayout(step?: string) {
   openWizardFromSidebar((step as any) || 'goals')
@@ -1130,9 +1154,32 @@ const { queueSave, isSaving: reportingSaving } = useDashboardPersistence({
   widgetTabs: widgetTabsRef,
   onboardingState,
   activePreset: activePresetRef,
+  preferredScope,
+  globalAppBg,
+  globalAppBgLight,
+  globalAppBgDark,
 })
 
 widgetsQueueSaveRef.value = queueSave
+
+// Keep activeThemeMode in sync with the effective theme so the
+// globalAppBg computed alias routes reads/writes to the right slot.
+watch(
+  effectiveTheme,
+  (val) => { activeThemeMode.value = val === 'dark' ? 'dark' : 'light' },
+  { immediate: true },
+)
+
+// Persist global preferences (preferredScope, per-theme globalAppBg)
+// whenever they change. The initial load will set them from the server
+// payload; a guard prevents that initial write from bouncing back as a
+// redundant save. Silent flag suppresses the "Selection saved" toast —
+// the user hits the scope tab / color picker rapidly and doesn't need
+// a confirmation for each tick.
+watch([preferredScope, globalAppBgLight, globalAppBgDark], () => {
+  if (!hasInitialLoad.value) return
+  queueSave(false, true)
+})
 
 // Goal strategies shape only a newly applied Standard template. They never
 // restrict the picker or rewrite a dashboard the user has already customized.
@@ -1886,8 +1933,33 @@ function setInlineScale(target: 'sm' | 'md' | 'lg' | 'xl') {
   setSelectedOption('scale', target)
 }
 
+function setGlobalAppBg(value: string | null) {
+  globalAppBg.value = value
+  inlineGroupOpen.value = null
+}
+// When a widget is selected the color picker adjusts that widget's cardBg;
+// otherwise it drives the global app background.
+const activeColorValue = computed(() =>
+  inlineSelectedItem.value ? (selectedCardBg.value ?? null) : globalAppBg.value,
+)
+const colorPickerTitle = computed(() =>
+  inlineSelectedItem.value
+    ? 'Widget background color'
+    : 'App background color (applies to every widget by default)',
+)
+function setActiveColor(value: string | null) {
+  if (inlineSelectedItem.value) {
+    setSelectedOption('cardBg', value)
+  } else {
+    globalAppBg.value = value
+  }
+  inlineGroupOpen.value = null
+}
 function toggleInlineGroup(group: 'width' | 'height' | 'scale' | 'color') {
-  if (!inlineSelectedItem.value) return
+  // The color group is available whether or not a widget is selected
+  // (falls back to the global app background). Other groups still
+  // require a selected widget.
+  if (group !== 'color' && !inlineSelectedItem.value) return
   inlineGroupOpen.value = inlineGroupOpen.value === group ? null : group
 }
 

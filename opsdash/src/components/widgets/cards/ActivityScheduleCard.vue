@@ -102,7 +102,11 @@ const props = defineProps<{
 
 const settings = computed<ActivityCardConfig>(() => Object.assign({}, defaultConfig, props.config ?? {}))
 const titleText = computed(() => props.title || 'Activity & Schedule')
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const showHeader = computed(() => props.showHeader !== false)
 
 const heroLine = computed(() => {

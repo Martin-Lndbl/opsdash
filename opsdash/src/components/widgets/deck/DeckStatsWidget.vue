@@ -83,7 +83,11 @@ const rows = computed(() =>
   }),
 )
 
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const titleText = computed(() => props.title || 'Deck stats')
 const rangeText = computed(() => (props.rangeLabel || 'current range').toLowerCase())
 const selectionText = computed(() => String(props.selectionText || '').trim())

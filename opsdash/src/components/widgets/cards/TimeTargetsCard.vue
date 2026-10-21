@@ -1,11 +1,17 @@
 <template>
-  <div class="card targets-card" :class="{ 'targets-card--endless': neverFinishedMode }" :style="cardStyle">
+  <div class="card targets-card" :class="{ 'targets-card--endless': neverFinishedMode, 'targets-card--outline': colorStyle === 'outline' }" :style="cardStyle">
     <div v-if="neverFinishedMode" class="targets-fireframe" aria-hidden="true"></div>
     <div class="targets-header" v-if="showHeader">
       <div class="targets-header__title">
         <strong>{{ title || 'Targets' }}</strong>
       </div>
-      <span class="hint" v-if="total.targetHours > 0">{{ totalDisplay.percentText }}%</span>
+      <div class="targets-header__meta" v-if="total.targetHours > 0">
+        <span class="hint">{{ totalDisplay.percentText }}%</span>
+        <span
+          v-if="config.ui.badges && totalDisplay.paceLabel"
+          :class="['status-label', totalDisplay.statusClass]"
+        >{{ totalDisplay.paceLabel }}</span>
+      </div>
     </div>
     <div v-if="neverFinishedMode" class="targets-hustle">
       <div class="targets-hustle__badge">
@@ -35,8 +41,7 @@
         Days left {{ total.daysLeft }} • Need {{ formatHours(total.needPerDay) }} h/day
       </div>
       <div class="line" v-if="showPace && total.targetHours > 0">
-        Pace: {{ totalDisplay.percentText }}% vs {{ total.calendarPercent.toFixed(0) }}% →
-        <span :class="['status-label', totalDisplay.statusClass]">{{ totalDisplay.paceLabel }}</span>
+        Pace: {{ totalDisplay.percentText }}% vs {{ total.calendarPercent.toFixed(0) }}%
       </div>
       <div class="line forecast" v-if="showForecast">
         Forecast: {{ summary.forecast.text }}
@@ -44,9 +49,6 @@
           Linear {{ formatHours(summary.forecast.linear) }}h · Momentum {{ formatHours(summary.forecast.momentum) }}h · Primary: {{ methodLabel(summary.forecast.primaryMethod) }}
         </span>
       </div>
-    </div>
-    <div class="targets-badges" v-if="config.ui.badges && total.targetHours > 0">
-      <span class="badge" :class="totalDisplay.statusClass">{{ totalDisplay.badgeLabel }}</span>
     </div>
     <div class="targets-categories" v-if="config.ui.showCategoryBlocks && categoryItems.length">
       <div class="category" v-for="cat in categoryItems" :key="cat.id">
@@ -72,15 +74,6 @@
                 class="fill"
                 :class="{ 'fill-endless': cat.isEndless }"
                 :style="{ width: cat.progress + '%', '--fill-color': cat.color || 'var(--brand)' }"
-              ></div>
-              <div
-                v-if="cat.todayWidth > 0"
-                class="today-overlay"
-                :style="{
-                  width: cat.todayWidth + '%',
-                  right: cat.todayRight + '%',
-                  background: cat.todayColor,
-              }"
               ></div>
             </div>
           </div>
@@ -139,6 +132,7 @@ const props = withDefaults(defineProps<{
   showHeader?: boolean
   title?: string
   cardBg?: string | null
+  colorStyle?: 'fill' | 'outline'
 }>(), {
   showDelta: true,
   showPace: true,
@@ -146,6 +140,7 @@ const props = withDefaults(defineProps<{
   neverFinishedMode: false,
   title: 'Targets',
   cardBg: null,
+  colorStyle: 'fill',
 })
 
 const total = computed<TargetsProgress>(() => props.summary?.total ?? fallbackProgress('total', 'Total'))
@@ -206,8 +201,6 @@ const categoryItems = computed(() => categoryGroups.value.map(group => {
   const targetHours = summary.targetHours
   const totalOver = Math.max(0, summary.actualHours - targetHours)
   const overToday = Math.min(totalOver, todayHours)
-  const hasTodayHours = todayHours > 0
-  const todayPct = targetHours > 0 ? (todayHours / targetHours) * 100 : 0
   const display = buildDisplayProgress(summary, 'badge')
   const progressPct = display.progress
   return {
@@ -234,12 +227,9 @@ const categoryItems = computed(() => categoryGroups.value.map(group => {
     isEndless: display.isEndless,
     todayHours,
     overToday,
-    todayWidth: hasTodayHours && targetHours > 0 ? clamp(todayPct, 2, 200) : 0,
-    todayRight: Math.max(0, 100 - progressPct),
     todayText: overToday > 0
       ? `Today ${formatHours(todayHours)} (+${formatHours(overToday)})`
       : `Today ${formatHours(todayHours)}`,
-    todayColor: group.color ? colorMix(group.color, 0.65) : 'var(--brand)',
     calendarLabel: Array.isArray(group.rows) && group.rows.length === 1 ? 'calendar' : 'calendars',
   }
 }).filter(item => item.targetHours > 0 || item.actualHours > 0 || item.calendarCount > 0))
@@ -334,17 +324,6 @@ function methodLabel(method: 'linear' | 'momentum'): string {
   return method === 'momentum' ? 'Momentum' : 'Linear'
 }
 
-function colorMix(hex: string, factor = 0.5): string {
-  const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex || '')
-  if (!m) return hex
-  const r = parseInt(m[1], 16)
-  const g = parseInt(m[2], 16)
-  const b = parseInt(m[3], 16)
-  const mix = Math.max(0, Math.min(1, factor))
-  return `rgb(${Math.round(r + (255 - r) * mix)},${Math.round(g + (255 - g) * mix)},${Math.round(
-    b + (255 - b) * mix,
-  )})`
-}
 </script>
 
 <style scoped>
@@ -365,6 +344,8 @@ function colorMix(hex: string, factor = 0.5): string {
 }
 .targets-header{ display:flex; justify-content:space-between; align-items:center }
 .targets-header__title{ display:flex; align-items:center; gap:calc(6px * var(--widget-space, 1)) }
+.targets-header__meta{ display:flex; align-items:center; gap:calc(6px * var(--widget-space, 1)); flex-wrap:nowrap }
+.targets-header__meta .status-label{ padding:calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1)); border-radius:999px; font-size:calc(11px * var(--widget-scale, 1)); font-weight:700; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap }
 .targets-header strong{ font-size:var(--widget-title-size, calc(14px * var(--widget-scale, 1))) }
 .targets-main{ display:flex; flex-direction:column; gap:calc(4px * var(--widget-space, 1)); font-size:calc(13px * var(--widget-scale, 1)) }
 .targets-main .line{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)) }
@@ -382,7 +363,6 @@ function colorMix(hex: string, factor = 0.5): string {
 .targets-hustle__icon :deep(svg),
 .targets-hustle__icon:deep(svg){ width:100%; height:auto; stroke-width:1.5 }
 .targets-hustle__scene.is-active .targets-hustle__icon{ opacity:1; transform:scale(1.02); filter:drop-shadow(0 0 8px color-mix(in srgb, #fb923c 45%, transparent)) drop-shadow(0 0 14px color-mix(in srgb, #f97316 20%, transparent)) }
-.targets-badges{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)) }
 .targets-categories{ display:flex; flex-direction:column; gap:calc(10px * var(--widget-space, 1)); padding-top:calc(6px * var(--widget-space, 1)); border-top:1px solid var(--line) }
 .category{ display:flex; flex-direction:column; gap:calc(6px * var(--widget-space, 1)); font-size:calc(12px * var(--widget-scale, 1)); padding:calc(4px * var(--widget-space, 1)) 0 }
 .category .cat-top{ display:flex; align-items:center; justify-content:space-between; gap:calc(8px * var(--widget-space, 1)) }
@@ -394,9 +374,9 @@ function colorMix(hex: string, factor = 0.5): string {
 .category .cat-meta .percent{ font-variant-numeric:tabular-nums; color:var(--fg) }
 .cat-progress .bar{ position:relative; width:100%; overflow:visible }
 .cat-progress .bar .bar-track{ position:relative; height:calc(16px * var(--widget-space, 1)); border-radius:999px; background:color-mix(in srgb, var(--muted) 20%, transparent); overflow:hidden }
-.cat-progress .bar .fill{ height:100%; border-radius:999px; transition:width .2s ease; max-width:100%; background:var(--fill-color, var(--brand)) }
+.cat-progress .bar .fill{ height:100%; border-radius:999px; transition:width .2s ease; max-width:100%; background-color:var(--fill-color, var(--brand)); background-image:linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 55%); background-repeat:no-repeat }
+.targets-card--outline .cat-progress .bar .fill{ background-color:color-mix(in oklab, var(--card, #fff) 90%, var(--fg, #0f172a) 10%); background-image:linear-gradient(180deg, color-mix(in oklab, var(--fill-color, var(--brand)) 18%, transparent), color-mix(in oklab, var(--fill-color, var(--brand)) 4%, transparent) 60%, transparent); background-repeat:no-repeat; box-shadow:inset 0 0 0 1px var(--fill-color, var(--brand)), inset 2px 0 0 var(--fill-color, var(--brand)) }
 .cat-progress .bar .fill.fill-endless{ transition:none; background-image:linear-gradient(90deg, color-mix(in srgb, var(--fill-color, #f97316) 70%, #f97316), color-mix(in srgb, #fb923c 38%, transparent), color-mix(in srgb, var(--fill-color, #f97316) 78%, #f97316)) }
-.cat-progress .bar .today-overlay{ position:absolute; top:0; height:100%; border-radius:999px; opacity:0.45; border:0; pointer-events:none }
 .category .cat-metrics{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)); align-items:center; color:var(--fg) }
 .cat-metrics .today-inline{ font-weight:600 }
 .cat-footer{ display:flex; justify-content:space-between; align-items:center }

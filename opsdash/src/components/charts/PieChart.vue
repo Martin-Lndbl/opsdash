@@ -5,7 +5,8 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ctxFor, themeVar, tint, invert } from '../../services/charts'
+import { ctxFor, drawChartTooltip, paintPolishedSlice, themeVar, tint, invert } from '../../services/charts'
+import { globalAppBg, activeThemeMode } from '../../../composables/useGlobalPreferences'
 
 const props = defineProps<{
   data?: any
@@ -13,12 +14,15 @@ const props = defineProps<{
   colorsByName?: Record<string, string>
   showLabels?: boolean
   highlightId?: string | null
+  colorStyle?: 'fill' | 'outline'
+  colorTint?: number
 }>()
 const cv = ref<HTMLCanvasElement|null>(null)
 let ro: ResizeObserver | null = null
 let mo: MutationObserver | null = null
 let geometry: { cx: number; cy: number; r: number; segments: Array<{ start: number; end: number; id: string }> } | null = null
 const hoverId = ref<string | null>(null)
+const hoverPos = ref<{ x: number; y: number } | null>(null)
 
 function draw(){
   const cdata:any = props.data
@@ -64,10 +68,13 @@ function draw(){
     const isDim = hasHighlight && !isMatch
     ctx.save()
     if (isDim) ctx.globalAlpha = 0.25
-    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,ang,a2);ctx.closePath();ctx.fillStyle=chosen;ctx.fill();
-    ctx.lineWidth = isMatch ? 2 : 1
-    ctx.strokeStyle = isMatch ? 'rgba(255,255,255,0.9)' : baseStroke
-    ctx.stroke()
+    paintPolishedSlice(ctx, cx, cy, r, ang, a2, chosen, props.colorStyle ?? 'fill', (props.colorTint ?? 0) / 100)
+    if (isMatch) {
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,ang,a2);ctx.closePath();
+      ctx.lineWidth = 2
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)'
+      ctx.stroke()
+    }
     ctx.restore()
     if (props.showLabels !== false) {
       const mid=(ang+a2)/2,lx=cx+Math.cos(mid)*(r+12*widgetSpace*pieScale),ly=cy+Math.sin(mid)*(r+12*widgetSpace*pieScale);
@@ -88,6 +95,25 @@ function draw(){
     ang=a2
   })
   geometry = { cx, cy, r, segments }
+  if (hoverId.value && hoverPos.value) {
+    const hIdx = ids.indexOf(hoverId.value)
+    if (hIdx >= 0) {
+      const hVal = data[hIdx]
+      const perc = (Math.max(0, hVal) / total) * 100
+      const label = labels[hIdx] || ids[hIdx]
+      const tooltipText = `${label}: ${hVal.toFixed(1)}h · ${perc.toFixed(1)}%`
+      drawChartTooltip(ctx, {
+        cursorX: hoverPos.value.x,
+        cursorY: hoverPos.value.y,
+        canvasWidth: W,
+        canvasHeight: H,
+        text: tooltipText,
+        bg: bg,
+        fg: fg,
+        scale: textScale,
+      })
+    }
+  }
 }
 
 function bindObservers() {
@@ -123,6 +149,12 @@ watch(()=>props.data, ()=> draw(), { deep:true })
 watch(()=>props.colorsById, ()=> draw(), { deep:true })
 watch(()=>props.showLabels, ()=> draw())
 watch(()=>props.highlightId, ()=> draw())
+watch(()=>props.colorStyle, ()=> draw())
+watch(()=>props.colorTint, ()=> draw())
+// Repaint when the effective theme or global app-bg changes so
+// outline-mode neutral fill (which reads --card) and colors that
+// depend on --fg / --line don't stay on the previous theme.
+watch([globalAppBg, activeThemeMode], () => draw())
 
 function onMouseMove(event: MouseEvent) {
   const cvEl = cv.value
@@ -134,8 +166,9 @@ function onMouseMove(event: MouseEvent) {
   const dy = y - geometry.cy
   const dist = Math.sqrt(dx * dx + dy * dy)
   if (!Number.isFinite(dist) || dist > geometry.r) {
-    if (hoverId.value) {
+    if (hoverId.value || hoverPos.value) {
       hoverId.value = null
+      hoverPos.value = null
       draw()
     }
     return
@@ -144,15 +177,17 @@ function onMouseMove(event: MouseEvent) {
   if (ang < -Math.PI / 2) ang += Math.PI * 2
   const hit = geometry.segments.find((seg) => ang >= seg.start && ang <= seg.end)
   const nextId = hit ? hit.id : null
+  hoverPos.value = { x, y }
   if (nextId !== hoverId.value) {
     hoverId.value = nextId
-    draw()
   }
+  draw()
 }
 
 function onMouseLeave() {
-  if (hoverId.value) {
+  if (hoverId.value || hoverPos.value) {
     hoverId.value = null
+    hoverPos.value = null
     draw()
   }
 }

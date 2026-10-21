@@ -9,6 +9,8 @@
       :stacked="stacked"
       :colors-by-id="colorsById"
       :show-labels="showLabels"
+      :color-style="colorStyle"
+      :color-tint="colorTint"
       :highlight-id="hoveredId"
     />
     <div v-else class="chart-widget__empty">No data</div>
@@ -42,13 +44,19 @@ const props = defineProps<{
   compact?: boolean
   showLegend?: boolean
   showLabels?: boolean
+  colorStyle?: 'fill' | 'outline'
+  colorTint?: number
   stacked?: { labels?: string[]; series?: Array<{ id: string; name?: string; label?: string; color?: string; data?: number[] }> } | null
   colorsById?: Record<string, string>
 }>()
 
 const showHeader = computed(() => props.showHeader !== false)
 const titleText = computed(() => props.title || 'Stacked bars')
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const colorsById = computed(() => props.colorsById || {})
 const hoveredId = ref<string | null>(null)
 

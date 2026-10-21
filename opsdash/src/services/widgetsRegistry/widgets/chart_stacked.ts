@@ -7,6 +7,7 @@ import {
   buildChartFilterControls,
   filterStackedByIds,
   resolveChartFilter,
+  buildCategoryLabelMap,
 } from './chartHelpers'
 
 const ChartStackedWidget = defineAsyncComponent(() =>
@@ -27,6 +28,8 @@ export const chartStackedEntry: RegistryEntry = {
     showLabels: false,
     compact: false,
     forecastMode: 'total',
+      colorStyle: 'fill',
+    colorTint: 0,
   },
   dynamicControls: (options, ctx) => {
     return [
@@ -36,6 +39,16 @@ export const chartStackedEntry: RegistryEntry = {
         { value: 'total', label: 'Distribute remaining total target' },
         { value: 'calendar', label: 'Respect calendar targets' },
         { value: 'category', label: 'Respect category targets' },
+      ] },
+      { key: 'colorStyle', label: 'Color style', type: 'select', options: [
+        { value: 'fill', label: 'Fill' },
+        { value: 'outline', label: 'Border only' },
+      ] },
+      { key: 'colorTint', label: 'Border-mode color tint', type: 'select', options: [
+        { value: 0, label: 'Off' },
+        { value: 30, label: 'Subtle' },
+        { value: 60, label: 'Medium' },
+        { value: 100, label: 'Strong' },
       ] },
       { key: 'showLegend', label: 'Show legend', type: 'toggle' },
       { key: 'showLabels', label: 'Show labels', type: 'toggle' },
@@ -54,7 +67,7 @@ export const chartStackedEntry: RegistryEntry = {
     })
     const stacked =
       mode === 'category'
-        ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, ids, categoryColorMap)
+        ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, ids, categoryColorMap, buildCategoryLabelMap(ctx))
         : filterStackedByIds(baseStacked, ids)
     return {
       title: buildTitle(baseTitle, def.options?.titlePrefix),
@@ -64,6 +77,8 @@ export const chartStackedEntry: RegistryEntry = {
       compact: def.options?.compact === true,
       showLegend: def.options?.showLegend !== false,
       showLabels: def.options?.showLabels === true,
+      colorStyle: def.options?.colorStyle === 'outline' ? 'outline' : 'fill',
+      colorTint: Number.isFinite(Number(def.options?.colorTint)) ? Math.max(0, Math.min(100, Number(def.options?.colorTint))) : 0,
       stacked,
       colorsById: ctx.colorsById || {},
     }

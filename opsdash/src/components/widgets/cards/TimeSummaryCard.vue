@@ -4,16 +4,16 @@
       <span>{{ headerText }}</span>
       </div>
     <div v-if="showOverviewPanel" class="time-summary-daily">
-      <div class="time-summary-hero" v-if="showToday && todayTotal !== null">
+      <div class="time-summary-hero" v-if="showToday && activeDay">
         <div>
-          <div class="time-summary-hero__label">Today</div>
-          <div class="time-summary-hero__value">{{ n1(todayTotal) }}<span>h</span></div>
-          <div v-if="todayPlannedHours > 0" class="time-summary-hero__planned">{{ n1(todayPlannedHours) }} h planned later</div>
+          <div class="time-summary-hero__label">{{ activeDayLabel }}</div>
+          <div class="time-summary-hero__value">{{ n1(activeDayHours ?? 0) }}<span>h</span></div>
+          <div v-if="isActiveDayToday && todayPlannedHours > 0" class="time-summary-hero__planned">{{ n1(todayPlannedHours) }} h planned later</div>
         </div>
         <div class="time-summary-hero__side">
           <strong>{{ todayEvents }}</strong>
           <span>events</span>
-          <span v-if="todayEvents > 0 && longestSessionLabel !== '—'">{{ longestSessionLabel }} longest</span>
+          <span v-if="isActiveDayToday && todayEvents > 0 && longestSessionLabel !== '—'">{{ longestSessionLabel }} longest</span>
         </div>
       </div>
 
@@ -23,7 +23,7 @@
           :key="view"
           type="button"
           :class="{ active: activeOverviewView === view }"
-          @click="activeOverviewView = view"
+          @click="selectView(view)"
         >{{ viewLabel(view) }}</button>
       </div>
 
@@ -56,9 +56,9 @@
           </div>
         </div>
 
-        <div v-else-if="activeOverviewView === 'calendars'" class="time-summary-lanes">
+        <div v-else-if="activeOverviewView === 'weekly' && preferredScope === 'calendar'" class="time-summary-lanes">
           <div class="time-summary-section-head">
-            <strong>Today by calendar</strong>
+            <strong>{{ activeDayLabel }} by calendar</strong>
             <span>{{ calendarTodayVisible.length }} calendar{{ calendarTodayVisible.length === 1 ? '' : 's' }}</span>
           </div>
           <div
@@ -74,9 +74,9 @@
           <div v-if="calendarTodayMoreCount > 0" class="time-summary-more">+ {{ calendarTodayMoreCount }} more</div>
         </div>
 
-        <div v-else-if="activeOverviewView === 'categories'" class="time-summary-lanes">
+        <div v-else-if="activeOverviewView === 'weekly'" class="time-summary-lanes">
           <div class="time-summary-section-head">
-            <strong>Today by category</strong>
+            <strong>{{ activeDayLabel }} by category</strong>
             <span>{{ categoryTodayVisible.length }} lane{{ categoryTodayVisible.length === 1 ? '' : 's' }}</span>
           </div>
           <div
@@ -101,18 +101,21 @@
       </div>
 
       <div v-if="showWeekMiniChart && weekDays.length" class="time-summary-week">
-        <div
+        <button
           v-for="day in weekDays"
           :key="day.date"
+          type="button"
           class="time-summary-week__day"
-          :class="{ active: day.isToday }"
+          :class="{ active: day.date === activeDayKey, today: day.isToday }"
           :title="`${day.label}: ${n1(day.hours)} h`"
+          :aria-pressed="day.date === activeDayKey"
+          @click="selectDay(day)"
         >
           <i class="time-summary-week__bar" :style="{ height: `${dayHeight(day.hours)}%` }">
             <strong>{{ n1(day.hours) }}h</strong>
           </i>
           <span>{{ day.label }}</span>
-        </div>
+        </button>
       </div>
 
     </div>
@@ -194,6 +197,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { formatDateOnly, formatDateRange, formatTime } from '../../../services/dateTime'
+import { preferredScope } from '../../../../composables/useGlobalPreferences'
 
 type Mode = 'active' | 'all'
 
@@ -211,7 +215,16 @@ type SummaryConfig = {
 }
 
 type DisplayMode = 'single_goal' | 'calendar_goals' | 'category_and_calendar_goals'
-type OverviewView = 'daily' | 'calendars' | 'categories'
+type OverviewView = 'daily' | 'weekly'
+type LegacyOverviewView = OverviewView | 'calendars' | 'categories'
+function normalizeOverviewView(input: any): OverviewView {
+  // Legacy 'calendars' and 'categories' values collapse to the new
+  // 'weekly' tab; the actual calendar-vs-category display is now
+  // driven by preferredScope from the sidebar.
+  if (input === 'daily') return 'daily'
+  if (input === 'weekly' || input === 'calendars' || input === 'categories') return 'weekly'
+  return 'daily'
+}
 
 type TodayLane = {
   id: string
@@ -363,9 +376,11 @@ const props = withDefaults(defineProps<{
   todayGroups?: TodayLane[]
   calendarTodayItems?: TodayLane[]
   categoryTodayItems?: TodayLane[]
+  calendarLanesByDay?: Record<string, TodayLane[]>
+  categoryLanesByDay?: Record<string, TodayLane[]>
   weekDays?: WeekDay[]
-  allowedViews?: OverviewView[]
-  defaultView?: OverviewView
+  allowedViews?: LegacyOverviewView[]
+  defaultView?: LegacyOverviewView
   showWeekMiniChart?: boolean
   showDailyKpis?: boolean
   showEmptyLanes?: boolean
@@ -454,7 +469,12 @@ const headerText = computed(() => {
   const range = props.summary?.rangeLabel || ''
   return props.showRangeInTitle !== false && range ? `${base} · ${range}` : base
 })
-const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+// Cascade the widget's chosen bg to inner panels that use var(--card).
+const cardStyle = computed(() => {
+  const bg = props.cardBg || undefined
+  if (!bg) return {}
+  return { background: bg, '--card': bg } as Record<string, string>
+})
 const showHeader = computed(() => props.showHeader)
 const showToday = computed(() => props.showToday)
 const showActivity = computed(() => props.showActivity)
@@ -479,19 +499,22 @@ const maxLanes = computed(() => {
 })
 const availableViews = computed<OverviewView[]>(() => {
   const raw = Array.isArray(props.allowedViews) ? props.allowedViews : []
-  const valid = raw.filter((view): view is OverviewView => view === 'daily' || view === 'calendars' || view === 'categories')
-  if (valid.length) return valid
-  if (displayMode.value === 'category_and_calendar_goals') return ['daily', 'calendars', 'categories']
-  if (displayMode.value === 'calendar_goals') return ['daily', 'calendars']
-  return ['daily']
+  // Collapse legacy 'calendars' / 'categories' to 'weekly' and dedupe.
+  const seen = new Set<OverviewView>()
+  raw.forEach((entry) => {
+    const norm = normalizeOverviewView(entry)
+    seen.add(norm)
+  })
+  if (seen.size) return Array.from(seen)
+  if (displayMode.value === 'single_goal') return ['daily']
+  return ['daily', 'weekly']
 })
 const activeOverviewView = ref<OverviewView>('daily')
 const overviewViewInitialized = ref(false)
 const defaultOverviewView = computed<OverviewView>(() => {
-  const requested = props.defaultView
+  const requested = props.defaultView ? normalizeOverviewView(props.defaultView) : null
   if (requested && availableViews.value.includes(requested)) return requested
-  if (displayMode.value === 'category_and_calendar_goals' && availableViews.value.includes('categories')) return 'categories'
-  if (displayMode.value === 'calendar_goals' && availableViews.value.includes('calendars')) return 'calendars'
+  if (availableViews.value.includes('weekly') && displayMode.value !== 'single_goal') return 'weekly'
   return 'daily'
 })
 watch(
@@ -508,17 +531,60 @@ watch(
   },
   { immediate: true },
 )
+
+function selectView(view: OverviewView) {
+  activeOverviewView.value = view
+}
 const showTabs = computed(() => availableViews.value.length > 1)
 const weekDays = computed<WeekDay[]>(() => Array.isArray(props.weekDays) ? props.weekDays : [])
 const todayWeekEntry = computed(() => weekDays.value.find((day) => day.isToday) ?? null)
+
+// User can click a day bar at the bottom to pick a specific day. On
+// current periods the default is today; on past/future periods where
+// today isn't in the visible range, default to the first day (Monday
+// for weeks, the 1st for months). If the stored selection isn't in
+// the current range it falls back to the same default.
+const selectedDayKey = ref<string | null>(null)
+const defaultDayKey = computed<string | null>(() => {
+  const days = weekDays.value
+  if (!days.length) return null
+  const today = days.find((d) => d.isToday)
+  return (today ?? days[0]).date
+})
+const activeDayKey = computed<string | null>(() => {
+  const key = selectedDayKey.value
+  if (key && weekDays.value.some((d) => d.date === key)) return key
+  return defaultDayKey.value
+})
+const activeDay = computed<WeekDay | null>(() =>
+  weekDays.value.find((day) => day.date === activeDayKey.value) ?? null,
+)
+const isActiveDayToday = computed(() => Boolean(activeDay.value?.isToday))
+const activeDayLabel = computed<string>(() => {
+  if (isActiveDayToday.value) return 'Today'
+  return String(activeDay.value?.label ?? '')
+})
+const activeDayHours = computed<number | null>(() => {
+  if (activeDay.value == null) return todayTotal.value
+  const value = Number(activeDay.value.hours)
+  return Number.isFinite(value) ? Math.max(0, value) : 0
+})
+function selectDay(day: WeekDay) {
+  selectedDayKey.value = day.date
+}
+
 const todayEvents = computed(() => {
-  const events = Number(todayWeekEntry.value?.events ?? NaN)
+  const events = Number(activeDay.value?.events ?? NaN)
   if (Number.isFinite(events)) return Math.max(0, Math.trunc(events))
-  return Math.max(0, Math.trunc(Number(activity.value?.events ?? 0)))
+  if (isActiveDayToday.value) {
+    return Math.max(0, Math.trunc(Number(activity.value?.events ?? 0)))
+  }
+  return 0
 })
 const todayAvgEvent = computed(() => {
-  if (todayEvents.value > 0 && todayTotal.value != null) return todayTotal.value / todayEvents.value
-  if (todayTotal.value != null) return 0
+  const hours = activeDayHours.value
+  if (todayEvents.value > 0 && hours != null) return hours / todayEvents.value
+  if (hours != null) return 0
   return props.summary.avgEvent
 })
 const weekMaxHours = computed(() => Math.max(0, ...weekDays.value.map((day) => Number(day.hours) || 0)))
@@ -529,8 +595,25 @@ const avgDayDeltaLabel = computed(() => {
 })
 const calendarTodayItems = computed<TodayLane[]>(() => normalizeLaneList(props.calendarTodayItems ?? todayItems.value))
 const categoryTodayItems = computed<TodayLane[]>(() => normalizeLaneList(props.categoryTodayItems ?? todayItems.value))
-const calendarTodayFiltered = computed(() => filterLaneList(calendarTodayItems.value))
-const categoryTodayFiltered = computed(() => filterLaneList(categoryTodayItems.value))
+// Active lane items follow the day picked in the bottom bars — falls back
+// to today's items if the widget wasn't given per-day breakdown for that
+// day (defensive; buildProps provides it for every day in weekDays).
+const activeCalendarItems = computed<TodayLane[]>(() => {
+  const key = activeDayKey.value
+  if (isActiveDayToday.value || !key) return calendarTodayItems.value
+  const source = props.calendarLanesByDay?.[key]
+  if (Array.isArray(source)) return normalizeLaneList(source)
+  return calendarTodayItems.value
+})
+const activeCategoryItems = computed<TodayLane[]>(() => {
+  const key = activeDayKey.value
+  if (isActiveDayToday.value || !key) return categoryTodayItems.value
+  const source = props.categoryLanesByDay?.[key]
+  if (Array.isArray(source)) return normalizeLaneList(source)
+  return categoryTodayItems.value
+})
+const calendarTodayFiltered = computed(() => filterLaneList(activeCalendarItems.value))
+const categoryTodayFiltered = computed(() => filterLaneList(activeCategoryItems.value))
 const calendarTodayVisible = computed(() => calendarTodayFiltered.value.slice(0, maxLanes.value))
 const categoryTodayVisible = computed(() => categoryTodayFiltered.value.slice(0, maxLanes.value))
 const calendarTodayMoreCount = computed(() => Math.max(0, calendarTodayFiltered.value.length - calendarTodayVisible.value.length))
@@ -776,9 +859,8 @@ function toggleAccordion(offset: number) {
 }
 
 function viewLabel(view: OverviewView) {
-  if (view === 'calendars') return 'Calendars'
-  if (view === 'categories') return 'Categories'
-  return 'Daily'
+  if (view === 'weekly') return 'Today'
+  return 'Summary'
 }
 
 function normalizeLaneList(input: TodayLane[]) {
@@ -922,11 +1004,11 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   gap: calc(14px * var(--widget-space, 1));
   align-items: end;
   padding: calc(14px * var(--widget-space, 1));
-  border-radius: calc(16px * var(--widget-space, 1));
-  background:
-    radial-gradient(circle at 0 0, color-mix(in oklab, var(--brand, #2563eb) 22%, transparent), transparent 48%),
-    linear-gradient(135deg, color-mix(in oklab, var(--brand, #2563eb) 16%, transparent), color-mix(in oklab, var(--card, #fff) 88%, transparent));
-  border: 1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 72%);
+  border-radius: calc(14px * var(--widget-space, 1));
+  background-color: var(--card, #fff);
+  background-image: radial-gradient(120% 90% at 0% 0%, color-mix(in oklab, var(--brand, #2563eb) 10%, transparent), transparent 32%);
+  border: 1px solid color-mix(in oklab, var(--brand, #2563eb) 20%, var(--line, #e5e7eb));
+  box-shadow: inset 2px 0 0 color-mix(in oklab, var(--brand, #2563eb) 55%, transparent);
   color: var(--fg);
 }
 .time-summary-hero__label {
@@ -991,9 +1073,9 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   cursor: pointer;
 }
 .time-summary-tabs button.active {
-  color: var(--brand);
-  background: color-mix(in oklab, var(--brand, #2563eb) 16%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--brand, #2563eb), transparent 72%);
+  color: color-mix(in oklab, var(--brand, #2563eb), var(--fg) 30%);
+  background: color-mix(in oklab, var(--brand, #2563eb) 28%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--brand, #2563eb), transparent 50%);
 }
 .time-summary-section-head {
   display: flex;
@@ -1025,14 +1107,12 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: calc(9px * var(--widget-space, 1));
   align-items: center;
-  min-height: calc(38px * var(--widget-space, 1));
-  padding: calc(9px * var(--widget-space, 1));
-  border-radius: calc(13px * var(--widget-space, 1));
-  background:
-    linear-gradient(90deg, color-mix(in oklab, var(--lane-color) 22%, transparent), transparent 68%),
-    color-mix(in oklab, var(--card, #fff) 92%, var(--fg) 8%);
-  border: 1px solid color-mix(in oklab, var(--lane-color) 30%, var(--line, #e5e7eb));
-  box-shadow: inset 3px 0 0 color-mix(in oklab, var(--lane-color) 82%, transparent);
+  min-height: calc(36px * var(--widget-space, 1));
+  padding: calc(8px * var(--widget-space, 1)) calc(10px * var(--widget-space, 1));
+  border-radius: calc(10px * var(--widget-space, 1));
+  background: color-mix(in oklab, var(--card, #fff) 96%, var(--fg) 4%);
+  border: 1px solid color-mix(in oklab, var(--lane-color) 18%, var(--line, #e5e7eb));
+  box-shadow: inset 2px 0 0 color-mix(in oklab, var(--lane-color) 60%, transparent);
 }
 .time-summary-lane .name {
   min-width: 0;
@@ -1095,14 +1175,11 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: calc(6px * var(--widget-space, 1));
   align-items: end;
-  height: calc(96px * var(--widget-space, 1));
-  padding: calc(12px * var(--widget-space, 1)) calc(10px * var(--widget-space, 1)) calc(7px * var(--widget-space, 1));
-  border-radius: calc(16px * var(--widget-space, 1));
-  border: 1px solid color-mix(in oklab, var(--line, #e5e7eb), transparent 35%);
-  background:
-    linear-gradient(180deg, color-mix(in oklab, var(--week-chart-accent) 8%, transparent), transparent 58%),
-    color-mix(in oklab, var(--fg) 4%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 42%, transparent);
+  height: calc(88px * var(--widget-space, 1));
+  padding: calc(10px * var(--widget-space, 1)) calc(10px * var(--widget-space, 1)) calc(6px * var(--widget-space, 1));
+  border-radius: calc(12px * var(--widget-space, 1));
+  border: 1px solid color-mix(in oklab, var(--line, #e5e7eb), transparent 45%);
+  background: color-mix(in oklab, var(--fg) 3%, transparent);
 }
 .time-summary-week__day {
   height: 100%;
@@ -1114,6 +1191,17 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   font-size: calc(10px * var(--widget-scale, 1));
   text-align: center;
   position: relative;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  appearance: none;
+}
+.time-summary-week__day:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--brand, #2563eb) 60%, transparent);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 .time-summary-week__day::before {
   content: '';
@@ -1127,32 +1215,24 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
 .time-summary-week__day::after {
   content: '';
   position: absolute;
-  left: 7%;
-  right: 7%;
+  left: 12%;
+  right: 12%;
   top: calc(2px * var(--widget-space, 1));
   bottom: calc(20px * var(--widget-space, 1));
-  border-radius: 999px 999px calc(8px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
-  background:
-    linear-gradient(180deg, color-mix(in oklab, var(--fg) 4%, transparent), transparent),
-    color-mix(in oklab, var(--card, #fff) 78%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--line, #e5e7eb), transparent 48%);
+  border-radius: calc(4px * var(--widget-space, 1));
+  background: color-mix(in oklab, var(--fg) 3%, transparent);
 }
 .time-summary-week__day i {
   display: block;
   width: 100%;
-  min-height: calc(20px * var(--widget-space, 1));
-  border-radius: 999px 999px calc(7px * var(--widget-space, 1)) calc(7px * var(--widget-space, 1));
-  background:
-    radial-gradient(circle at 50% 10%, color-mix(in oklab, #fff 72%, transparent), transparent 31%),
-    linear-gradient(90deg, transparent, color-mix(in oklab, #fff 18%, transparent), transparent),
-    linear-gradient(180deg, color-mix(in oklab, var(--week-chart-accent) 72%, white), var(--week-chart-accent));
+  min-height: calc(18px * var(--widget-space, 1));
+  border-radius: calc(6px * var(--widget-space, 1)) calc(6px * var(--widget-space, 1)) calc(4px * var(--widget-space, 1)) calc(4px * var(--widget-space, 1));
+  background: linear-gradient(180deg, color-mix(in oklab, var(--week-chart-accent) 82%, white 18%), var(--week-chart-accent));
   position: relative;
   overflow: hidden;
   z-index: 1;
-  box-shadow:
-    0 7px 14px color-mix(in oklab, var(--week-chart-accent) 26%, transparent),
-    inset 0 1px 0 color-mix(in oklab, #fff 44%, transparent);
-  transition: transform .16s ease, filter .16s ease;
+  box-shadow: 0 2px 6px color-mix(in oklab, var(--week-chart-accent) 18%, transparent);
+  transition: transform .16s ease;
 }
 .time-summary-week__day:hover i {
   transform: translateY(-2px);
@@ -1176,13 +1256,10 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   z-index: 1;
 }
 .time-summary-week__day.active i {
-  background:
-    radial-gradient(circle at 50% 10%, color-mix(in oklab, #fff 70%, transparent), transparent 34%),
-    linear-gradient(180deg, color-mix(in oklab, #38bdf8 42%, var(--week-chart-accent)), var(--week-chart-accent));
+  background: linear-gradient(180deg, color-mix(in oklab, #38bdf8 30%, var(--week-chart-accent)), var(--week-chart-accent));
   box-shadow:
-    0 9px 18px color-mix(in oklab, var(--week-chart-accent) 34%, transparent),
-    0 0 0 1px color-mix(in oklab, var(--week-chart-accent) 35%, transparent),
-    inset 0 1px 0 color-mix(in oklab, #fff 50%, transparent);
+    0 3px 8px color-mix(in oklab, var(--week-chart-accent) 24%, transparent),
+    0 0 0 1px color-mix(in oklab, var(--week-chart-accent) 28%, transparent);
 }
 .time-summary-week__day.active span {
   color: var(--fg);
