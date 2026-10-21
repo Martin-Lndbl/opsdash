@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 
 ## Unreleased
+### Added
+- Task lists are now tracked like calendars: each task counts from its start date to its due date (or start + duration), and those hours are summed into the task list's category, targets, charts and reports. Tasks without a start date, or that are cancelled, are not counted.
+- Recurring tasks count every occurrence in the selected period, honouring skipped dates and individually moved occurrences.
+
+### Changed
+- Events marked as "free" (`Show as: Free` / `TRANSP:TRANSPARENT`, or Outlook's free busy status) are no longer counted anywhere in opsdash.
+
+### Fixed
+- Event and task times now keep their timezone. Previously they were read as UTC, so e.g. a 09:00 Europe/Berlin event was placed at 10:00/11:00 in heatmaps, per-day totals and period boundaries. All-day dates are now read in the user's own timezone, so they no longer slip to the previous day for users west of UTC.
 
 ## 0.8.3 - 2026-07-20
 ### Added

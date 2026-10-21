@@ -108,12 +108,12 @@ final class OverviewAggregationService {
             $stTzName = (string)($r['startTz'] ?? '');
             $enTzName = (string)($r['endTz'] ?? '');
             try {
-                $srcTzStart = new \DateTimeZone($stTzName ?: 'UTC');
+                $srcTzStart = $stTzName !== '' ? new \DateTimeZone($stTzName) : $userTz;
             } catch (\Throwable) {
                 $srcTzStart = new \DateTimeZone('UTC');
             }
             try {
-                $srcTzEnd = new \DateTimeZone($enTzName ?: 'UTC');
+                $srcTzEnd = $enTzName !== '' ? new \DateTimeZone($enTzName) : $userTz;
             } catch (\Throwable) {
                 $srcTzEnd = new \DateTimeZone('UTC');
             }

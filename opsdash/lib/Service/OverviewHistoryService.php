@@ -394,12 +394,12 @@ final class OverviewHistoryService {
         $endTzName   = (string)($row['endTz'] ?? '');
 
         try {
-            $srcTzStart = new \DateTimeZone($startTzName ?: 'UTC');
+            $srcTzStart = $startTzName !== '' ? new \DateTimeZone($startTzName) : $userTz;
         } catch (\Throwable) {
             $srcTzStart = new \DateTimeZone('UTC');
         }
         try {
-            $srcTzEnd = new \DateTimeZone($endTzName ?: 'UTC');
+            $srcTzEnd = $endTzName !== '' ? new \DateTimeZone($endTzName) : $userTz;
         } catch (\Throwable) {
             $srcTzEnd = new \DateTimeZone('UTC');
         }
@@ -447,12 +447,12 @@ final class OverviewHistoryService {
         $startTzName = (string)($row['startTz'] ?? '');
         $endTzName   = (string)($row['endTz'] ?? '');
         try {
-            $srcTzStart = new \DateTimeZone($startTzName ?: 'UTC');
+            $srcTzStart = $startTzName !== '' ? new \DateTimeZone($startTzName) : $userTz;
         } catch (\Throwable) {
             $srcTzStart = new \DateTimeZone('UTC');
         }
         try {
-            $srcTzEnd = new \DateTimeZone($endTzName ?: 'UTC');
+            $srcTzEnd = $endTzName !== '' ? new \DateTimeZone($endTzName) : $userTz;
         } catch (\Throwable) {
             $srcTzEnd = new \DateTimeZone('UTC');
         }
@@ -654,12 +654,12 @@ final class OverviewHistoryService {
         $startTzName = (string)($event['startTz'] ?? '');
         $endTzName = (string)($event['endTz'] ?? '');
         try {
-            $srcTzStart = new \DateTimeZone($startTzName ?: 'UTC');
+            $srcTzStart = $startTzName !== '' ? new \DateTimeZone($startTzName) : $userTz;
         } catch (\Throwable) {
             $srcTzStart = new \DateTimeZone('UTC');
         }
         try {
-            $srcTzEnd = new \DateTimeZone($endTzName ?: 'UTC');
+            $srcTzEnd = $endTzName !== '' ? new \DateTimeZone($endTzName) : $userTz;
         } catch (\Throwable) {
             $srcTzEnd = new \DateTimeZone('UTC');
         }

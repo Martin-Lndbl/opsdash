@@ -137,6 +137,14 @@ final class OverviewEventsCollector {
 
             $rows = $this->calendarParsing->parseRows($rawRows, $calName, $cid);
 
+            // Tasks (VTODO) are treated like calendar entries spanning start → due.
+            $taskRawRows = $this->searchTasks($principal, (string)($cal->getUri() ?? $cid));
+            $taskRows = [];
+            if ($taskRawRows !== []) {
+                $taskRows = $this->calendarParsing->parseTaskRows($taskRawRows, $calName, $cid, $from, $to);
+                $rows = array_merge($rows, $taskRows);
+            }
+
             if (count($rows) > $maxPerCal) {
                 $rows = array_slice($rows, 0, $maxPerCal);
                 $truncated = true;
@@ -161,6 +169,8 @@ final class OverviewEventsCollector {
                     'method' => $used,
                     'mode' => $mode,
                     'rows' => is_array($rawRows) ? count($rawRows) : 0,
+                    'task_rows' => count($taskRawRows),
+                    'task_rows_in_range' => count($taskRows),
                     'sample_raw' => isset($rawRows[0]) ? $rawRows[0] : null,
                     'sample_parsed' => isset($rows[0]) ? $rows[0] : null,
                     'sample_detect_allday' => (is_array($rawRows[0] ?? null)) ? self::detectAllDayFromRawRow($rawRows[0]) : null,
@@ -247,6 +257,38 @@ final class OverviewEventsCollector {
         $details['allday'] = $flag;
         $details['reason'] = $reason;
         return $details;
+    }
+
+    /**
+     * Fetch a calendar's tasks. The CalDAV backend only indexes occurrence bounds for VEVENTs,
+     * so time-ranged searches never return VTODOs; query them unbounded and filter afterwards.
+     *
+     * @return array<int, mixed>
+     */
+    private function searchTasks(string $principal, string $calendarKey): array {
+        try {
+            if (!method_exists($this->calendarManager, 'newQuery') || !method_exists($this->calendarManager, 'searchForPrincipal')) {
+                return [];
+            }
+            $q = $this->buildQuery($principal);
+            if (!method_exists($q, 'addType')) {
+                return [];
+            }
+            if (method_exists($q, 'addSearchCalendar')) {
+                $q->addSearchCalendar($calendarKey);
+            } elseif (method_exists($q, 'addCalendar')) {
+                $q->addCalendar($calendarKey);
+            } else {
+                return [];
+            }
+            $q->addType('VTODO');
+            return $this->runSearchForPrincipal($principal, $q);
+        } catch (\Throwable $e) {
+            $this->logger->error('task query failed: ' . $e->getMessage(), [
+                'app' => self::APP_NAME,
+            ]);
+        }
+        return [];
     }
 
     private function buildQuery(string $principal): object {

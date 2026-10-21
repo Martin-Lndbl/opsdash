@@ -7,22 +7,31 @@ namespace Composer\Autoload;
 class ComposerStaticInitdb7ffd513e3c367a129147cb6a20f6f6
 {
     public static $files = array (
+        '383eaff206634a77a1be54e64e6459c7' => __DIR__ . '/..' . '/sabre/uri/lib/functions.php',
         '6124b4c8570aa390c21fafd04a26c69f' => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy/deep_copy.php',
+        '3569eecfeed3bcf0bad3c998a494ecb8' => __DIR__ . '/..' . '/sabre/xml/lib/Deserializer/functions.php',
+        '93aa591bc4ca510c520999e34229ee79' => __DIR__ . '/..' . '/sabre/xml/lib/Serializer/functions.php',
         '9b38cf48e83f5d8f60375221cd213eee' => __DIR__ . '/..' . '/phpstan/phpstan/bootstrap.php',
         'ec07570ca5a812141189b1fa81503674' => __DIR__ . '/..' . '/phpunit/phpunit/src/Framework/Assert/Functions.php',
     );
 
     public static $prefixLengthsPsr4 = array (
-        'P' => 
+        'S' =>
+        array (
+            'Sabre\\Xml\\' => 10,
+            'Sabre\\VObject\\' => 14,
+            'Sabre\\Uri\\' => 10,
+        ),
+        'P' =>
         array (
             'PhpParser\\' => 10,
         ),
-        'O' => 
+        'O' =>
         array (
             'OCA\\Opsdash\\Tests\\' => 18,
             'OCA\\Opsdash\\' => 12,
         ),
-        'D' => 
+        'D' =>
         array (
             'Doctrine\\Instantiator\\' => 22,
             'DeepCopy\\' => 9,
@@ -30,23 +39,35 @@ class ComposerStaticInitdb7ffd513e3c367a129147cb6a20f6f6
     );
 
     public static $prefixDirsPsr4 = array (
-        'PhpParser\\' => 
+        'Sabre\\Xml\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/sabre/xml/lib',
+        ),
+        'Sabre\\VObject\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/sabre/vobject/lib',
+        ),
+        'Sabre\\Uri\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/sabre/uri/lib',
+        ),
+        'PhpParser\\' =>
         array (
             0 => __DIR__ . '/..' . '/nikic/php-parser/lib/PhpParser',
         ),
-        'OCA\\Opsdash\\Tests\\' => 
+        'OCA\\Opsdash\\Tests\\' =>
         array (
             0 => __DIR__ . '/../..' . '/tests/php',
         ),
-        'OCA\\Opsdash\\' => 
+        'OCA\\Opsdash\\' =>
         array (
             0 => __DIR__ . '/../..' . '/lib',
         ),
-        'Doctrine\\Instantiator\\' => 
+        'Doctrine\\Instantiator\\' =>
         array (
             0 => __DIR__ . '/..' . '/doctrine/instantiator/src/Doctrine/Instantiator',
         ),
-        'DeepCopy\\' => 
+        'DeepCopy\\' =>
         array (
             0 => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy',
         ),

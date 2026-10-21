@@ -86,4 +86,49 @@ final class OverviewAggregationServiceTest extends TestCase {
     $this->assertSame(8.0, round($result['byDay']['2025-01-10']['future_hours'], 2));
     $this->assertSame(2.0, round($result['longestSessionHours'], 2));
   }
+
+  public function testAggregateReadsRowsInTheirSourceTimezone(): void {
+    $service = new OverviewAggregationService();
+    $ny = new \DateTimeZone('America/New_York');
+
+    $result = $service->aggregate(
+      events: [
+        [
+          // 15:00 in Berlin is 09:00 in New York.
+          'calendar' => 'Work',
+          'calendar_id' => 'cal-1',
+          'title' => 'Sync with Berlin',
+          'allday' => false,
+          'start' => '2025-12-15 15:00:00',
+          'end' => '2025-12-15 16:00:00',
+          'startTz' => 'Europe/Berlin',
+          'endTz' => 'Europe/Berlin',
+        ],
+        [
+          // Floating all-day date: stays on the 16th in the user's timezone.
+          'calendar' => 'Work',
+          'calendar_id' => 'cal-1',
+          'title' => 'Workshop',
+          'allday' => true,
+          'start' => '2025-12-16 00:00:00',
+          'end' => '2025-12-17 00:00:00',
+          'startTz' => '',
+          'endTz' => '',
+        ],
+      ],
+      from: new \DateTimeImmutable('2025-12-15 00:00:00', $ny),
+      to: new \DateTimeImmutable('2025-12-21 23:59:59', $ny),
+      userTz: $ny,
+      allDayHours: 8.0,
+      colorsById: [],
+      categoryMeta: ['work' => ['id' => 'work', 'label' => 'Work']],
+      mapCalToCategory: static fn (string $calId): string => 'work',
+      now: new \DateTimeImmutable('2026-01-01 00:00:00', $ny),
+    );
+
+    $this->assertSame(1.0, round($result['hod']['Mon'][9], 2));
+    $this->assertSame(1.0, round($result['byDay']['2025-12-15']['total_hours'], 2));
+    $this->assertSame(8.0, round($result['byDay']['2025-12-16']['total_hours'], 2));
+    $this->assertSame(9.0, round($result['totalHours'], 2));
+  }
 }
