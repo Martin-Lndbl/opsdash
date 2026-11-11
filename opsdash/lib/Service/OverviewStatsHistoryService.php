@@ -65,6 +65,9 @@ final class OverviewStatsHistoryService {
             'currentEventsCount' => $context['currentEventsCount'],
             'currentWeekendShare' => $context['currentWeekendShare'],
             'currentEveningShare' => $context['currentEveningShare'],
+            'calendarPriorities' => is_array($context['targetsConfig']['calendarPriorities'] ?? null)
+                ? $context['targetsConfig']['calendarPriorities']
+                : [],
         ]);
 
         $precomputedDaysWorked = [];

@@ -69,6 +69,7 @@ final class OverviewHistoryService {
                 mapCalToCategory: $mapCalToCategory,
                 userTz: $userTz,
                 allDayHours: $allDayHours,
+                calendarPriorities: is_array($targetsConfig['calendarPriorities'] ?? null) ? $targetsConfig['calendarPriorities'] : [],
             );
             $history[] = $this->buildTrendHistoryEntry(
                 range: $range,
@@ -149,6 +150,7 @@ final class OverviewHistoryService {
      * @param array<int, object> $calendars
      * @param array<string,array{id:string,label:string}> $categoryMeta
      * @param callable(string): string $mapCalToCategory
+     * @param array<string,mixed> $calendarPriorities
      * @return array{totals: array<string,float>, total: float, events: int, daysSeen: string[]}
      */
     public function collectCategoryTotalsForRange(
@@ -163,6 +165,7 @@ final class OverviewHistoryService {
         \DateTimeZone $userTz,
         float $allDayHours,
         bool $captureDays = false,
+        array $calendarPriorities = [],
     ): array {
         return $this->collectRangeCategoryTotals(
             from: $from,
@@ -176,6 +179,7 @@ final class OverviewHistoryService {
             userTz: $userTz,
             allDayHours: $allDayHours,
             captureDays: $captureDays,
+            calendarPriorities: $calendarPriorities,
         );
     }
 
@@ -299,6 +303,7 @@ final class OverviewHistoryService {
      * @param array<int, object> $calendars
      * @param array<string,array{id:string,label:string}> $categoryMeta
      * @param callable(string): string $mapCalToCategory
+     * @param array<string,mixed> $calendarPriorities
      * @return array{totals: array<string,float>, total: float, events: int, daysSeen: string[], byCal: array<string,float>}
      */
     private function collectRangeCategoryTotals(
@@ -313,6 +318,7 @@ final class OverviewHistoryService {
         \DateTimeZone $userTz,
         float $allDayHours,
         bool $captureDays = false,
+        array $calendarPriorities = [],
     ): array {
         $categoryTotals = [];
         foreach ($categoryMeta as $catId => $_meta) {
@@ -335,7 +341,24 @@ final class OverviewHistoryService {
             debug: false,
         );
 
-        foreach ($collect['events'] as $row) {
+        $prioritySpans = [];
+        foreach ($collect['events'] as $idx => $row) {
+            if (!is_array($row) || !empty($row['allday'])) {
+                continue;
+            }
+            $bounds = $this->timedEventBounds($row, $userTz);
+            if ($bounds !== null) {
+                $calId = (string)($row['calendar_id'] ?? ($row['calendar'] ?? ''));
+                $prioritySpans[$idx] = [
+                    'start' => $bounds[0],
+                    'end' => $bounds[1],
+                    'priority' => CalendarPriorityResolver::priorityFor($calendarPriorities, $calId),
+                ];
+            }
+        }
+        $effectiveSpans = CalendarPriorityResolver::resolve($prioritySpans);
+
+        foreach ($collect['events'] as $idx => $row) {
             if (!is_array($row)) {
                 continue;
             }
@@ -358,6 +381,21 @@ final class OverviewHistoryService {
                 $dayKey = substr($startStr, 0, 10);
                 if ($dayKey !== '') {
                     $daysSeen[$dayKey] = true;
+                }
+            }
+
+            // Scale down by the share of the event not claimed by higher-priority calendars.
+            if (isset($prioritySpans[$idx], $effectiveSpans[$idx])) {
+                $spanSeconds = $prioritySpans[$idx]['end'] - $prioritySpans[$idx]['start'];
+                $keptSeconds = 0;
+                foreach ($effectiveSpans[$idx] as [$pieceStart, $pieceEnd]) {
+                    $keptSeconds += $pieceEnd - $pieceStart;
+                }
+                if ($spanSeconds > 0 && $keptSeconds < $spanSeconds) {
+                    $eventHours *= $keptSeconds / $spanSeconds;
+                    if ($eventHours <= 0) {
+                        continue;
+                    }
                 }
             }
 
@@ -438,10 +476,19 @@ final class OverviewHistoryService {
      * @param array<string,mixed> $row
      */
     private function normalizeTimedEventHours(array $row, \DateTimeZone $userTz): float {
+        $bounds = $this->timedEventBounds($row, $userTz);
+        return $bounds === null ? 0.0 : ($bounds[1] - $bounds[0]) / 3600.0;
+    }
+
+    /**
+     * @param array<string,mixed> $row
+     * @return array{0:int, 1:int}|null Start/end unix timestamps, or null when unparseable or empty.
+     */
+    private function timedEventBounds(array $row, \DateTimeZone $userTz): ?array {
         $startStr = (string)($row['start'] ?? '');
         $endStr   = (string)($row['end'] ?? '');
         if ($startStr === '' || $endStr === '') {
-            return 0.0;
+            return null;
         }
 
         $startTzName = (string)($row['startTz'] ?? '');
@@ -461,15 +508,12 @@ final class OverviewHistoryService {
             $dtStart = new \DateTimeImmutable($startStr, $srcTzStart);
             $dtEnd = new \DateTimeImmutable($endStr, $srcTzEnd);
         } catch (\Throwable) {
-            return 0.0;
+            return null;
         }
 
-        $dtStartUser = $dtStart->setTimezone($userTz);
-        $dtEndUser = $dtEnd->setTimezone($userTz);
-        if ($dtEndUser <= $dtStartUser) {
-            return 0.0;
-        }
-        return ($dtEndUser->getTimestamp() - $dtStartUser->getTimestamp()) / 3600.0;
+        $startTs = $dtStart->getTimestamp();
+        $endTs = $dtEnd->getTimestamp();
+        return $endTs > $startTs ? [$startTs, $endTs] : null;
     }
 
     /**

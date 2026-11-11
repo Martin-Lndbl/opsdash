@@ -249,6 +249,21 @@
                     />
                     <span class="ge-unit">h</span>
                   </div>
+                  <div
+                    class="ge-input ge-input--sm ge-input--prio"
+                    title="Priority: where events overlap, only the calendar with the higher priority is credited for that time"
+                  >
+                    <input
+                      type="number"
+                      :min="CALENDAR_PRIORITY_MIN"
+                      :max="CALENDAR_PRIORITY_MAX"
+                      step="1"
+                      :value="calendarPriority(cal.id)"
+                      aria-label="Calendar priority"
+                      @change="(e) => { const v = readPriority(e); v !== null && emit('set-calendar-priority', { id: cal.id, value: v }) }"
+                    />
+                    <span class="ge-unit">pri</span>
+                  </div>
                   <button
                     class="ge-catcard__remove"
                     type="button"
@@ -380,7 +395,7 @@ import { computed, ref, watch } from 'vue'
 import { NcAppNavigation } from '@nextcloud/vue'
 import { getWeekNumber, parseDateKey } from '../../services/dateTime'
 import { preferredScope, globalAppBg, activeThemeMode } from '../../../composables/useGlobalPreferences'
-import type { TargetCategoryConfig, TargetsConfig } from '../../services/targets'
+import { CALENDAR_PRIORITY_MAX, CALENDAR_PRIORITY_MIN, type TargetCategoryConfig, type TargetsConfig } from '../../services/targets'
 import ColorPickerPopover from '../ColorPickerPopover.vue'
 
 type SidebarCalendar = { id: string; displayname: string; color?: string }
@@ -439,6 +454,7 @@ const emit = defineEmits([
   'update-targets-config',
   'set-group',
   'set-calendar-target',
+  'set-calendar-priority',
 ])
 
 const rangeEyebrow = computed(() => props.range === 'month' ? 'This month' : 'This week')
@@ -520,6 +536,12 @@ const assignableCalendars = (id: string) =>
 
 const calendarTarget = (calId: string) =>
   Math.round((Number(props.currentTargets?.[calId]) || 0) * 100) / 100
+
+const calendarPriority = (calId: string) => Math.trunc(Number(props.targets?.calendarPriorities?.[calId]) || 0)
+const readPriority = (e: Event) => {
+  const n = Math.trunc(Number((e.target as HTMLInputElement).value))
+  return Number.isFinite(n) ? Math.max(CALENDAR_PRIORITY_MIN, Math.min(CALENDAR_PRIORITY_MAX, n)) : null
+}
 
 const toggleCategory = (id: string) => { openCategoryId.value = openCategoryId.value === id ? '' : id }
 
@@ -1050,7 +1072,7 @@ const onCategoryLabelCommit = (id: string, v: string) => {
 }
 .ge-calrow {
   display: grid;
-  grid-template-columns: 10px minmax(0, 1fr) auto auto;
+  grid-template-columns: 10px minmax(0, 1fr) auto auto auto;
   align-items: center;
   gap: 6px;
   padding: 2px 4px;
@@ -1107,6 +1129,9 @@ const onCategoryLabelCommit = (id: string, v: string) => {
 .ge-input--sm {
   border-color: transparent;
   background: transparent;
+}
+.ge-input--prio input[type="number"] {
+  width: 40px;
 }
 .ge-input--sm:focus-within {
   border-color: color-mix(in oklab, var(--brand, #2563eb) 40%, transparent);

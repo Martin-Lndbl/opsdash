@@ -96,6 +96,7 @@
           @update-targets-config="(cfg) => updateTargetsConfig(cfg)"
           @set-group="({ id, groupId }) => setGroup(id, groupId)"
           @set-calendar-target="({ id, value }) => setTarget(id, value)"
+          @set-calendar-priority="({ id, value }) => setCalendarPriority(id, value)"
         />
       </template>
 
@@ -1190,6 +1191,7 @@ const {
   toggleCalendar,
   setGroup,
   setTarget,
+  setCalendarPriority,
   updateTargetsConfig,
   selectAll,
 } = useDashboardSelection({

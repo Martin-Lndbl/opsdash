@@ -195,6 +195,26 @@ final class PersistSanitizer {
             $out['allDayHours'] = round($this->clampFloat((float)$cfg['allDayHours'], 0, 24), 2);
         }
 
+        if (isset($cfg['calendarPriorities']) && is_array($cfg['calendarPriorities'])) {
+            $priorities = [];
+            foreach ($cfg['calendarPriorities'] as $id => $raw) {
+                $key = substr((string)$id, 0, 128);
+                if ($key === '' || !is_numeric($raw)) {
+                    continue;
+                }
+                $n = CalendarPriorityResolver::priorityFor([$key => $raw], $key);
+                if ($n !== 0) {
+                    $priorities[$key] = $n;
+                }
+                if (count($priorities) >= 500) {
+                    break;
+                }
+            }
+            if ($priorities !== []) {
+                $out['calendarPriorities'] = $priorities;
+            }
+        }
+
         return $out;
     }
 

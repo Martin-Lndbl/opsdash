@@ -131,4 +131,125 @@ final class OverviewAggregationServiceTest extends TestCase {
     $this->assertSame(8.0, round($result['byDay']['2025-12-16']['total_hours'], 2));
     $this->assertSame(9.0, round($result['totalHours'], 2));
   }
+
+  public function testCalendarPrioritiesCreditOverlapToHigherPriorityCalendar(): void {
+    $service = new OverviewAggregationService();
+    $from = new \DateTimeImmutable('2025-01-06T00:00:00Z');
+    $to = new \DateTimeImmutable('2025-01-12T23:59:59Z');
+    $now = new \DateTimeImmutable('2025-01-10T00:00:00Z');
+    $events = [
+      [
+        'calendar' => 'Lectures',
+        'calendar_id' => 'lectures',
+        'title' => 'Lecture',
+        'hours' => 4.0,
+        'allday' => false,
+        'start' => '2025-01-07T10:00:00Z',
+        'end' => '2025-01-07T14:00:00Z',
+        'startTz' => 'UTC',
+        'endTz' => 'UTC',
+      ],
+      [
+        'calendar' => 'Lunch',
+        'calendar_id' => 'lunch',
+        'title' => 'Lunch',
+        'hours' => 1.0,
+        'allday' => false,
+        'start' => '2025-01-07T12:00:00Z',
+        'end' => '2025-01-07T13:00:00Z',
+        'startTz' => 'UTC',
+        'endTz' => 'UTC',
+      ],
+    ];
+    $mapCalToCategory = static fn (string $calId): string => $calId === 'lunch' ? 'break' : 'study';
+    $categoryMeta = ['study' => ['id' => 'study', 'label' => 'Study'], 'break' => ['id' => 'break', 'label' => 'Break']];
+
+    $plain = $service->aggregate(
+      events: $events,
+      from: $from,
+      to: $to,
+      userTz: new \DateTimeZone('UTC'),
+      allDayHours: 8.0,
+      colorsById: [],
+      categoryMeta: $categoryMeta,
+      mapCalToCategory: $mapCalToCategory,
+      now: $now,
+    );
+    $this->assertSame(5.0, round($plain['totalHours'], 2));
+    $this->assertSame(4.0, round($plain['byCalMap']['lectures']['total_hours'], 2));
+    $this->assertSame(1, $plain['overlapCount']);
+
+    $prioritized = $service->aggregate(
+      events: $events,
+      from: $from,
+      to: $to,
+      userTz: new \DateTimeZone('UTC'),
+      allDayHours: 8.0,
+      colorsById: [],
+      categoryMeta: $categoryMeta,
+      mapCalToCategory: $mapCalToCategory,
+      now: $now,
+      calendarPriorities: ['lunch' => 1],
+    );
+
+    $this->assertSame(4.0, round($prioritized['totalHours'], 2));
+    $this->assertSame(1.0, round($prioritized['byCalMap']['lunch']['total_hours'], 2));
+    $this->assertSame(3.0, round($prioritized['byCalMap']['lectures']['total_hours'], 2));
+    $this->assertSame(3.0, round($prioritized['categoryTotals']['study'], 2));
+    $this->assertSame(1.0, round($prioritized['categoryTotals']['break'], 2));
+    $this->assertSame(4.0, round($prioritized['byDay']['2025-01-07']['total_hours'], 2));
+    $this->assertSame(3.0, round($prioritized['perDayByCal']['2025-01-07']['lectures'], 2));
+    $this->assertSame(1.0, round($prioritized['hod']['Tue'][12], 2));
+    $this->assertSame(0, $prioritized['overlapCount']);
+    $this->assertSame(3.0, round($prioritized['long'][0]['duration_h'], 2));
+    $this->assertSame(2, $prioritized['eventsCount']);
+  }
+
+  public function testCalendarPrioritiesDropEventsFullyCoveredByHigherPriority(): void {
+    $service = new OverviewAggregationService();
+    $from = new \DateTimeImmutable('2025-01-06T00:00:00Z');
+    $to = new \DateTimeImmutable('2025-01-12T23:59:59Z');
+    $now = new \DateTimeImmutable('2025-01-10T00:00:00Z');
+
+    $result = $service->aggregate(
+      events: [
+        [
+          'calendar' => 'Focus',
+          'calendar_id' => 'focus',
+          'title' => 'Deep work',
+          'hours' => 3.0,
+          'allday' => false,
+          'start' => '2025-01-07T09:00:00Z',
+          'end' => '2025-01-07T12:00:00Z',
+          'startTz' => 'UTC',
+          'endTz' => 'UTC',
+        ],
+        [
+          'calendar' => 'Misc',
+          'calendar_id' => 'misc',
+          'title' => 'Reminder',
+          'hours' => 0.5,
+          'allday' => false,
+          'start' => '2025-01-07T10:00:00Z',
+          'end' => '2025-01-07T10:30:00Z',
+          'startTz' => 'UTC',
+          'endTz' => 'UTC',
+        ],
+      ],
+      from: $from,
+      to: $to,
+      userTz: new \DateTimeZone('UTC'),
+      allDayHours: 8.0,
+      colorsById: [],
+      categoryMeta: [],
+      mapCalToCategory: static fn (string $calId): string => 'all',
+      now: $now,
+      calendarPriorities: ['focus' => 2, 'misc' => -1],
+    );
+
+    $this->assertSame(3.0, round($result['totalHours'], 2));
+    $this->assertSame(1, $result['eventsCount']);
+    $this->assertSame(0, $result['byCalMap']['misc']['events_count']);
+    $this->assertSame(0.0, round($result['byCalMap']['misc']['total_hours'], 2));
+  }
 }

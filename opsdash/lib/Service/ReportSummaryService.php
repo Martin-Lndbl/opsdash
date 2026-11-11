@@ -108,6 +108,7 @@ final class ReportSummaryService {
             ? $this->persistSanitizer->cleanTargetsConfig($targetsConfigOverride)
             : $this->userConfigService->readTargetsConfig($appName, $uid);
         $onboardingState = $this->userConfigService->readOnboardingState($appName, $uid);
+        $calendarPriorities = is_array($targetsConfig['calendarPriorities'] ?? null) ? $targetsConfig['calendarPriorities'] : [];
 
         $categoryMeta = [];
         $groupToCategory = [];
@@ -161,6 +162,7 @@ final class ReportSummaryService {
             colorsById: [],
             categoryMeta: $categoryMeta,
             mapCalToCategory: $mapCalToCategory,
+            calendarPriorities: $calendarPriorities,
         );
 
         $categoryTotalsPrev = [];
@@ -187,6 +189,7 @@ final class ReportSummaryService {
                 colorsById: [],
                 categoryMeta: $categoryMeta,
                 mapCalToCategory: $mapCalToCategory,
+                calendarPriorities: $calendarPriorities,
             );
             $categoryTotalsPrev = $prevAgg['categoryTotals'] ?? [];
             $prevTotal = (float)($prevAgg['totalHours'] ?? 0.0);
