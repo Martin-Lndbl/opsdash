@@ -83,7 +83,12 @@ export interface TargetsConfig {
   activityCard: ActivityCardConfig
   balance: BalanceConfig
   includeZeroDaysInStats: boolean
+  /** Calendar id → priority (-10..10). Where timed events overlap, only the higher-priority calendar is credited. */
+  calendarPriorities?: Record<string, number>
 }
+
+export const CALENDAR_PRIORITY_MIN = -10
+export const CALENDAR_PRIORITY_MAX = 10
 
 export function clampTarget(value: number): number {
   const num = Number(value)
@@ -178,6 +183,7 @@ export function createDefaultTargetsConfig(): TargetsConfig {
     activityCard: createDefaultActivityCardConfig(),
     balance: createDefaultBalanceConfig(),
     includeZeroDaysInStats: false,
+    calendarPriorities: {},
   }
 }
 
@@ -266,9 +272,22 @@ export function normalizeTargetsConfig(cfg: TargetsConfig | string | null | unde
     activityCard: normalizeActivityCardConfig(clone.activityCard, base.activityCard),
     balance: normalizeBalanceConfig(clone.balance, resolvedCategories, base.balance),
     includeZeroDaysInStats: !!(clone.includeZeroDaysInStats ?? base.includeZeroDaysInStats),
+    calendarPriorities: normalizeCalendarPriorities(clone.calendarPriorities),
   }
 
   return result
+}
+
+function normalizeCalendarPriorities(input: any): Record<string, number> {
+  const out: Record<string, number> = {}
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return out
+  for (const [id, raw] of Object.entries(input)) {
+    const key = String(id).trim()
+    const n = Math.trunc(Number(raw))
+    if (!key || !Number.isFinite(n) || n === 0) continue
+    out[key] = Math.min(CALENDAR_PRIORITY_MAX, Math.max(CALENDAR_PRIORITY_MIN, n))
+  }
+  return out
 }
 
 function normalizeActivityCardConfig(input: any, base: ActivityCardConfig): ActivityCardConfig {

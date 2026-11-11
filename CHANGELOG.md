@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 ### Added
+- Calendars can be given a priority (−10…10, in the sidebar Goals editor). Where timed events from calendars with different priorities overlap, only the higher-priority calendar is credited for the overlapping time; the lower-priority event counts just the part outside the overlap. This applies to totals, per-calendar and per-category hours, per-day and heatmap charts, previous-period comparisons, balance history and reports. Calendars with equal priority (the default) keep counting in full.
 - Task lists are now tracked like calendars: each task counts from its start date to its due date (or start + duration), and those hours are summed into the task list's category, targets, charts and reports. Tasks without a start date, or that are cancelled, are not counted.
 - Recurring tasks count every occurrence in the selected period, honouring skipped dates and individually moved occurrences.
 

@@ -9,6 +9,7 @@ final class OverviewAggregationService {
      * @param array<string, string> $colorsById
      * @param array<string, array{id:string,label:string}> $categoryMeta
      * @param callable(string): string $mapCalToCategory
+     * @param array<string, mixed> $calendarPriorities Calendar id => priority; overlapping time is credited to the higher priority only.
      * @return array{
      *   totalHours: float,
      *   futureTotalHours: float,
@@ -50,6 +51,7 @@ final class OverviewAggregationService {
         array $categoryMeta,
         callable $mapCalToCategory,
         ?\DateTimeImmutable $now = null,
+        array $calendarPriorities = [],
     ): array {
         $totalHours = 0.0;
         $futureTotalHours = 0.0;
@@ -88,7 +90,25 @@ final class OverviewAggregationService {
         $futureWindowStart = $analysisNow > $from ? $analysisNow : $from;
         $futureWindowEnd = $to;
 
-        foreach ($events as $r) {
+        // First pass: resolve event bounds so calendar priorities can trim overlaps before aggregating.
+        $bounds = [];
+        $prioritySpans = [];
+        foreach ($events as $idx => $r) {
+            $isAllDayEvent = !empty($r['allday']);
+            [$dtStartUser, $dtEndUser] = $this->eventBoundsInUserTz($r, $isAllDayEvent, $userTz);
+            $bounds[$idx] = [$dtStartUser, $dtEndUser];
+            if (!$isAllDayEvent && $dtStartUser && $dtEndUser && $dtEndUser > $dtStartUser) {
+                $calId = (string)($r['calendar_id'] ?? ($r['calendar'] ?? ''));
+                $prioritySpans[$idx] = [
+                    'start' => $dtStartUser->getTimestamp(),
+                    'end' => $dtEndUser->getTimestamp(),
+                    'priority' => CalendarPriorityResolver::priorityFor($calendarPriorities, $calId),
+                ];
+            }
+        }
+        $effectiveSpans = CalendarPriorityResolver::resolve($prioritySpans);
+
+        foreach ($events as $idx => $r) {
             $isAllDayEvent = !empty($r['allday']);
             $h = (float)($r['hours'] ?? 0.0);
             $calName = (string)($r['calendar'] ?? '');
@@ -103,36 +123,7 @@ final class OverviewAggregationService {
                 $categoryColors[$catId] = $colorsById[$calId];
             }
 
-            $stStr = (string)($r['start'] ?? '');
-            $enStr = (string)($r['end'] ?? '');
-            $stTzName = (string)($r['startTz'] ?? '');
-            $enTzName = (string)($r['endTz'] ?? '');
-            try {
-                $srcTzStart = $stTzName !== '' ? new \DateTimeZone($stTzName) : $userTz;
-            } catch (\Throwable) {
-                $srcTzStart = new \DateTimeZone('UTC');
-            }
-            try {
-                $srcTzEnd = $enTzName !== '' ? new \DateTimeZone($enTzName) : $userTz;
-            } catch (\Throwable) {
-                $srcTzEnd = new \DateTimeZone('UTC');
-            }
-            $dtStart = $stStr !== '' ? new \DateTimeImmutable($stStr, $srcTzStart) : null;
-            $dtEnd = $enStr !== '' ? new \DateTimeImmutable($enStr, $srcTzEnd) : null;
-            $dtStartUser = $dtStart?->setTimezone($userTz);
-            $dtEndUser = $dtEnd?->setTimezone($userTz);
-
-            if ($isAllDayEvent && $dtStartUser) {
-                $dtStartUser = $dtStartUser->setTime(0, 0, 0);
-            }
-            if ($isAllDayEvent) {
-                if ($dtEndUser) {
-                    $dtEndUser = $dtEndUser->setTime(0, 0, 0);
-                }
-                if (!$dtEndUser && $dtStartUser) {
-                    $dtEndUser = $dtStartUser->modify('+1 day');
-                }
-            }
+            [$dtStartUser, $dtEndUser] = $bounds[$idx];
 
             $daysSpanned = 1;
             if ($dtStartUser && $dtEndUser) {
@@ -156,24 +147,40 @@ final class OverviewAggregationService {
                 ? ($eventHours / $eventDurationSeconds)
                 : 0.0;
 
-            $actualStart = $dtStartUser && $dtStartUser > $actualWindowStart ? $dtStartUser : $actualWindowStart;
-            $actualEnd = $dtEndUser && $dtEndUser < $actualWindowEnd ? $dtEndUser : $actualWindowEnd;
-            $actualSeconds = ($dtStartUser && $dtEndUser && $actualEnd > $actualStart)
-                ? ($actualEnd->getTimestamp() - $actualStart->getTimestamp())
-                : 0;
-            $actualHours = $hoursPerSecond > 0 && $actualSeconds > 0 ? $actualSeconds * $hoursPerSecond : 0.0;
+            // Pieces of the event left after higher-priority calendars claimed their overlap.
+            $pieces = [];
+            if ($dtStartUser && $dtEndUser) {
+                if (isset($effectiveSpans[$idx])) {
+                    foreach ($effectiveSpans[$idx] as [$pieceStartTs, $pieceEndTs]) {
+                        $pieces[] = [$dtStartUser->setTimestamp($pieceStartTs), $dtStartUser->setTimestamp($pieceEndTs)];
+                    }
+                } else {
+                    $pieces[] = [$dtStartUser, $dtEndUser];
+                }
+            }
 
-            $futureStart = $dtStartUser && $dtStartUser > $futureWindowStart ? $dtStartUser : $futureWindowStart;
-            $futureEnd = $dtEndUser && $dtEndUser < $futureWindowEnd ? $dtEndUser : $futureWindowEnd;
-            $futureSeconds = ($dtStartUser && $dtEndUser && $futureEnd > $futureStart)
-                ? ($futureEnd->getTimestamp() - $futureStart->getTimestamp())
-                : 0;
-            $futureHours = $hoursPerSecond > 0 && $futureSeconds > 0 ? $futureSeconds * $hoursPerSecond : 0.0;
+            $actualHours = 0.0;
+            $futureHours = 0.0;
+            $actualPieces = [];
+            foreach ($pieces as [$pieceStart, $pieceEnd]) {
+                $actualStart = $pieceStart > $actualWindowStart ? $pieceStart : $actualWindowStart;
+                $actualEnd = $pieceEnd < $actualWindowEnd ? $pieceEnd : $actualWindowEnd;
+                if ($actualEnd > $actualStart && $hoursPerSecond > 0) {
+                    $actualHours += ($actualEnd->getTimestamp() - $actualStart->getTimestamp()) * $hoursPerSecond;
+                    $actualPieces[] = [$actualStart, $actualEnd];
+                }
+
+                $futureStart = $pieceStart > $futureWindowStart ? $pieceStart : $futureWindowStart;
+                $futureEnd = $pieceEnd < $futureWindowEnd ? $pieceEnd : $futureWindowEnd;
+                if ($futureEnd > $futureStart && $hoursPerSecond > 0) {
+                    $futureHours += ($futureEnd->getTimestamp() - $futureStart->getTimestamp()) * $hoursPerSecond;
+                    $this->addFutureByDay($byDay, $futureStart, $futureEnd, $hoursPerSecond);
+                }
+            }
 
             if ($futureHours > 0) {
                 $futureTotalHours += $futureHours;
                 $byCalMap[$calId]['future_hours'] += $futureHours;
-                $this->addFutureByDay($byDay, $futureStart, $futureEnd, $hoursPerSecond);
             }
 
             if ($actualHours <= 0) {
@@ -185,30 +192,24 @@ final class OverviewAggregationService {
             $byCalMap[$calId]['total_hours'] += $actualHours;
             $categoryTotals[$catId] = ($categoryTotals[$catId] ?? 0.0) + $actualHours;
 
-            if ($actualStart) {
-                $ts = $actualStart->getTimestamp();
-                if ($earliestStartTs === null || $ts < $earliestStartTs) {
-                    $earliestStartTs = $ts;
-                }
+            $ts = $actualPieces[0][0]->getTimestamp();
+            if ($earliestStartTs === null || $ts < $earliestStartTs) {
+                $earliestStartTs = $ts;
             }
-            if ($actualEnd) {
-                $te = $actualEnd->getTimestamp();
-                if ($latestEndTs === null || $te > $latestEndTs) {
-                    $latestEndTs = $te;
-                }
+            $te = $actualPieces[count($actualPieces) - 1][1]->getTimestamp();
+            if ($latestEndTs === null || $te > $latestEndTs) {
+                $latestEndTs = $te;
             }
             if ($actualHours > $longestSessionHours) {
                 $longestSessionHours = $actualHours;
             }
 
-            if ($actualStart) {
-                $dayStart = $actualStart->format('Y-m-d');
-                $byDay[$dayStart] = $byDay[$dayStart] ?? ['date' => $dayStart, 'events_count' => 0, 'total_hours' => 0.0, 'future_hours' => 0.0];
-                $byDay[$dayStart]['events_count']++;
-                $daysSeen[$dayStart] = true;
-            }
+            $dayStart = $actualPieces[0][0]->format('Y-m-d');
+            $byDay[$dayStart] = $byDay[$dayStart] ?? ['date' => $dayStart, 'events_count' => 0, 'total_hours' => 0.0, 'future_hours' => 0.0];
+            $byDay[$dayStart]['events_count']++;
+            $daysSeen[$dayStart] = true;
 
-            if ($actualStart && $actualEnd && $actualEnd > $actualStart) {
+            foreach ($actualPieces as [$actualStart, $actualEnd]) {
                 $segmentStart = $actualStart;
                 while ($segmentStart < $actualEnd) {
                     $dayKey = $segmentStart->format('Y-m-d');
@@ -322,6 +323,45 @@ final class OverviewAggregationService {
             'currentCutoff' => $currentPeriodClipped ? $analysisNow->format(\DateTimeInterface::ATOM) : null,
             'analysisTo' => $analysisTo,
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $r
+     * @return array{0: \DateTimeImmutable|null, 1: \DateTimeImmutable|null}
+     */
+    private function eventBoundsInUserTz(array $r, bool $isAllDayEvent, \DateTimeZone $userTz): array {
+        $stStr = (string)($r['start'] ?? '');
+        $enStr = (string)($r['end'] ?? '');
+        $stTzName = (string)($r['startTz'] ?? '');
+        $enTzName = (string)($r['endTz'] ?? '');
+        try {
+            $srcTzStart = $stTzName !== '' ? new \DateTimeZone($stTzName) : $userTz;
+        } catch (\Throwable) {
+            $srcTzStart = new \DateTimeZone('UTC');
+        }
+        try {
+            $srcTzEnd = $enTzName !== '' ? new \DateTimeZone($enTzName) : $userTz;
+        } catch (\Throwable) {
+            $srcTzEnd = new \DateTimeZone('UTC');
+        }
+        $dtStart = $stStr !== '' ? new \DateTimeImmutable($stStr, $srcTzStart) : null;
+        $dtEnd = $enStr !== '' ? new \DateTimeImmutable($enStr, $srcTzEnd) : null;
+        $dtStartUser = $dtStart?->setTimezone($userTz);
+        $dtEndUser = $dtEnd?->setTimezone($userTz);
+
+        if ($isAllDayEvent && $dtStartUser) {
+            $dtStartUser = $dtStartUser->setTime(0, 0, 0);
+        }
+        if ($isAllDayEvent) {
+            if ($dtEndUser) {
+                $dtEndUser = $dtEndUser->setTime(0, 0, 0);
+            }
+            if (!$dtEndUser && $dtStartUser) {
+                $dtEndUser = $dtStartUser->modify('+1 day');
+            }
+        }
+
+        return [$dtStartUser, $dtEndUser];
     }
 
     /**

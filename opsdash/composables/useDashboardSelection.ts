@@ -1,6 +1,8 @@
 import { type Ref } from 'vue'
 
 import {
+  CALENDAR_PRIORITY_MAX,
+  CALENDAR_PRIORITY_MIN,
   normalizeTargetsConfig,
   type TargetsConfig,
 } from '../src/services/targets'
@@ -96,11 +98,25 @@ export function useDashboardSelection(deps: DashboardSelectionDeps) {
     deps.queueSave(false)
   }
 
+  function setCalendarPriority(id: string, raw: number) {
+    const n = Math.max(CALENDAR_PRIORITY_MIN, Math.min(CALENDAR_PRIORITY_MAX, Math.trunc(Number(raw) || 0)))
+    const priorities = { ...(deps.targetsConfig.value.calendarPriorities ?? {}) }
+    if (n === 0) {
+      delete priorities[id]
+    } else {
+      priorities[id] = n
+    }
+    deps.targetsConfig.value = normalizeTargetsConfig({ ...deps.targetsConfig.value, calendarPriorities: priorities })
+    // Priorities change how overlapping hours are credited server-side, so refetch after saving.
+    deps.queueSave(true)
+  }
+
   return {
     isSelected,
     toggleCalendar,
     setGroup,
     setTarget,
+    setCalendarPriority,
     updateTargetsConfig,
     selectAll,
   }

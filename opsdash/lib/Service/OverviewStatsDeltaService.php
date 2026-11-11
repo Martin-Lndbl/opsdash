@@ -32,7 +32,8 @@ final class OverviewStatsDeltaService {
      *   currentAvgPerEvent: float,
      *   currentEventsCount: int,
      *   currentWeekendShare: float,
-     *   currentEveningShare: float
+     *   currentEveningShare: float,
+     *   calendarPriorities?: array<string, mixed>
      * } $context
      * @return array{
      *   delta: array<string, float|int>,
@@ -59,6 +60,7 @@ final class OverviewStatsDeltaService {
         $maxTotal = (int)$context['maxTotal'];
         $colorsById = $context['colorsById'];
         $weekStart = (int)($context['weekStart'] ?? 1);
+        $calendarPriorities = is_array($context['calendarPriorities'] ?? null) ? $context['calendarPriorities'] : [];
 
         $currentTotalHours = (float)$context['currentTotalHours'];
         $currentAvgPerDay = (float)$context['currentAvgPerDay'];
@@ -80,6 +82,7 @@ final class OverviewStatsDeltaService {
             userTz: $userTz,
             allDayHours: $allDayHours,
             captureDays: true,
+            calendarPriorities: $calendarPriorities,
         );
 
         $categoryTotalsPrev = $previousMetrics['totals'];
@@ -114,6 +117,7 @@ final class OverviewStatsDeltaService {
                     colorsById: $colorsById,
                     categoryMeta: $categoryMeta,
                     mapCalToCategory: $mapCalToCategory,
+                    calendarPriorities: $calendarPriorities,
                 );
                 $prevTotalHours = (float)$prevAgg['totalHours'];
                 $prevHod = $prevAgg['hod'];

@@ -84,6 +84,7 @@ final class OverviewDataService {
         $allDayHours = isset($targetsConfig['allDayHours'])
             ? max(0.0, min(24.0, (float)$targetsConfig['allDayHours']))
             : 8.0;
+        $calendarPriorities = is_array($targetsConfig['calendarPriorities'] ?? null) ? $targetsConfig['calendarPriorities'] : [];
 
         // --- Current period collect/aggregate ---
         $collect = $this->eventsCollector->collect(
@@ -112,6 +113,7 @@ final class OverviewDataService {
             categoryMeta: $categoryMeta,
             mapCalToCategory: $mapCalToCategory,
             now: $analysisNow,
+            calendarPriorities: $calendarPriorities,
         );
         $totalHours = $agg['totalHours'];
         $futureTotalHours = $agg['futureTotalHours'];
@@ -203,6 +205,7 @@ final class OverviewDataService {
                 weekStart: $weekStart,
                 maxPerCal: $maxPerCal,
                 maxTotal: $maxTotal,
+                calendarPriorities: $calendarPriorities,
             );
             if ($lookbackCharts !== null) {
                 $chartsPayload['charts']['perDaySeriesLookback'] = $lookbackCharts['perDaySeries'] ?? null;
@@ -336,6 +339,7 @@ final class OverviewDataService {
         int $weekStart,
         int $maxPerCal,
         int $maxTotal,
+        array $calendarPriorities = [],
     ): ?array {
         $lookbackPeriods = max(1, min(6, $lookbackPeriods));
         if ($lookbackPeriods <= 1) {
@@ -472,6 +476,7 @@ final class OverviewDataService {
                 colorsById: $colorsById,
                 categoryMeta: $categoryMeta,
                 mapCalToCategory: $mapCalToCategory,
+                calendarPriorities: $calendarPriorities,
             );
             $rangeLabels = $agg['rangeLabels'] ?? [];
             $perDayByCal = $agg['perDayByCal'] ?? [];

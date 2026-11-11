@@ -25,6 +25,13 @@ describe('targets helpers', () => {
     expect(progressPercent(-5 as unknown as number, 10)).toBe(0)
   })
 
+  it('normalizes calendar priorities: clamps to ±10, drops zero and garbage', () => {
+    const cfg = normalizeTargetsConfig({ calendarPriorities: { lunch: 99, lectures: -99, zero: 0, junk: 'x', '  ': 3, half: 2.7 } } as any)
+    expect(cfg.calendarPriorities).toEqual({ lunch: 10, lectures: -10, half: 2 })
+    expect(normalizeTargetsConfig(undefined).calendarPriorities).toEqual({})
+    expect(normalizeTargetsConfig({ calendarPriorities: [1, 2] } as any).calendarPriorities).toEqual({})
+  })
+
   it('clamps all-day hours to 0–24 and keeps defaults', () => {
     const cfg = normalizeTargetsConfig({ allDayHours: 42 } as any)
     expect(cfg.allDayHours).toBe(24)
